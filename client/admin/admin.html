@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panou Administrator - Sistem Vot Electronic</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/utilities.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <header>
+        <nav class="navbar admin-navbar">
+            <div class="nav-container">
+                <div class="nav-brand">
+                    <a href="../index.html" title="Pagina Principală">
+                        <i class="fas fa-user-shield"></i>
+                        <span>Panou Administrator</span>
+                    </a>
+                </div>
+                <ul class="nav-menu">
+                    <li>
+                        <a href="../index.html" class="nav-link" title="Mergi la pagina principală">
+                            <i class="fas fa-home"></i>
+                            <span>Pagina Principală</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="admin.html" class="nav-link active" title="Panou Admin">
+                            <i class="fas fa-tachometer-alt"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="user-info">
+                        <span id="adminWelcome">
+                            <i class="fas fa-user-cog"></i>
+                            <span>Administrator</span>
+                        </span>
+                    </li>
+                    <li>
+                        <button id="logoutBtn" class="btn-logout" title="Deconectare">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Deconectare</span>
+                        </button>
+                    </li>
+                </ul>
+                <div class="nav-toggle" id="navToggle">
+                    <span class="bar"></span>
+                    <span class="bar"></span>
+                    <span class="bar"></span>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main class="admin-main">
+        <div class="container">
+            <!-- Welcome Section -->
+            <section class="welcome-section">
+                <div class="welcome-card">
+                    <div class="welcome-content">
+                        <h1>
+                            <i class="fas fa-user-shield"></i>
+                            Bun venit, <span id="adminName">Administrator</span>!
+                        </h1>
+                        <p>Gestionează sistemul de vot electronic din panoul de control</p>
+                    </div>
+                    <div class="quick-actions-header">
+                        <button class="btn-quick-action" id="quickSessionBtn" title="Crează sesiune nouă">
+                            <i class="fas fa-vote-yea"></i>
+                            <span>Nouă Sesiune</span>
+                        </button>
+                        <button class="btn-quick-action" id="quickNewsBtn" title="Adaugă noutate">
+                            <i class="fas fa-newspaper"></i>
+                            <span>Nouă Noutate</span>
+                        </button>
+                        <button class="btn-quick-action" id="quickResultBtn" title="Adaugă rezultat">
+                            <i class="fas fa-trophy"></i>
+                            <span>Nou Rezultat</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Statistics -->
+            <section class="admin-section stats-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-chart-line"></i> Statistici Rapide</h2>
+                    <button class="btn-refresh" id="refreshStatsBtn" title="Reîncarcă statistici">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+                <div class="admin-stats">
+                    <div class="stat-card stat-users">
+                        <div class="stat-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-number" id="totalUsers">0</div>
+                            <div class="stat-label">Utilizatori</div>
+                            <div class="stat-trend">
+                                <i class="fas fa-arrow-up"></i>
+                                <span>Înregistrați</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stat-card stat-sessions">
+                        <div class="stat-icon">
+                            <i class="fas fa-vote-yea"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-number" id="activeSessions">0</div>
+                            <div class="stat-label">Sesiuni Active</div>
+                            <div class="stat-trend">
+                                <i class="fas fa-check-circle"></i>
+                                <span>Disponibile</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stat-card stat-votes">
+                        <div class="stat-icon">
+                            <i class="fas fa-poll"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-number" id="totalVotes">0</div>
+                            <div class="stat-label">Total Voturi</div>
+                            <div class="stat-trend">
+                                <i class="fas fa-chart-line"></i>
+                                <span>Înregistrate</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stat-card stat-today">
+                        <div class="stat-icon">
+                            <i class="fas fa-calendar-day"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-number" id="todayVotes">0</div>
+                            <div class="stat-label">Voturi Azi</div>
+                            <div class="stat-trend">
+                                <i class="fas fa-fire"></i>
+                                <span>Astăzi</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stat-card stat-news">
+                        <div class="stat-icon">
+                            <i class="fas fa-newspaper"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-number" id="totalNews">0</div>
+                            <div class="stat-label">Noutăți</div>
+                            <div class="stat-trend">
+                                <i class="fas fa-check-circle"></i>
+                                <span id="activeNewsText">Active</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stat-card stat-results">
+                        <div class="stat-icon">
+                            <i class="fas fa-trophy"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-number" id="totalResults">0</div>
+                            <div class="stat-label">Rezultate</div>
+                            <div class="stat-trend">
+                                <i class="fas fa-chart-bar"></i>
+                                <span>Publicate</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tabs Navigation -->
+            <div class="admin-tabs-container">
+                <div class="admin-tabs">
+                    <button class="tab-btn active" data-tab="sessions">
+                        <i class="fas fa-vote-yea"></i>
+                        <span>Sesiuni</span>
+                        <span class="tab-badge" id="sessionsBadge">0</span>
+                    </button>
+                    <button class="tab-btn" data-tab="news">
+                        <i class="fas fa-newspaper"></i>
+                        <span>Noutăți</span>
+                        <span class="tab-badge" id="newsBadge">0</span>
+                    </button>
+                    <button class="tab-btn" data-tab="results">
+                        <i class="fas fa-trophy"></i>
+                        <span>Rezultate</span>
+                        <span class="tab-badge" id="resultsBadge">0</span>
+                    </button>
+                    <button class="tab-btn" data-tab="users">
+                        <i class="fas fa-users"></i>
+                        <span>Utilizatori</span>
+                        <span class="tab-badge" id="usersBadge">0</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tab Content: Sessions -->
+            <div id="tab-sessions" class="tab-content active">
+                <section class="admin-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-vote-yea"></i> Gestiune Sesiuni de Vot</h2>
+                        <div class="section-actions">
+                            <button class="btn-secondary" id="refreshSessionsBtn" title="Reîncarcă">
+                                <i class="fas fa-sync-alt"></i>
+                                <span>Reîncarcă</span>
+                            </button>
+                            <button class="btn-primary" id="createSessionBtn">
+                                <i class="fas fa-plus"></i>
+                                <span>Crează Sesiune</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="sessionsList" class="items-list">
+                        <div class="loading-state">
+                            <div class="spinner"></div>
+                            <p>Se încarcă sesiunile...</p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Tab Content: News -->
+            <div id="tab-news" class="tab-content">
+                <section class="admin-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-newspaper"></i> Gestiune Noutăți</h2>
+                        <div class="section-actions">
+                            <button class="btn-secondary" id="refreshNewsBtn" title="Reîncarcă">
+                                <i class="fas fa-sync-alt"></i>
+                                <span>Reîncarcă</span>
+                            </button>
+                            <button class="btn-primary" id="createNewsBtn">
+                                <i class="fas fa-plus"></i>
+                                <span>Adaugă Noutate</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="newsList" class="items-list">
+                        <div class="loading-state">
+                            <div class="spinner"></div>
+                            <p>Se încarcă noutățile...</p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Tab Content: Results -->
+            <div id="tab-results" class="tab-content">
+                <section class="admin-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-trophy"></i> Gestiune Rezultate</h2>
+                        <div class="section-actions">
+                            <button class="btn-secondary" id="refreshResultsBtn" title="Reîncarcă">
+                                <i class="fas fa-sync-alt"></i>
+                                <span>Reîncarcă</span>
+                            </button>
+                            <button class="btn-primary" id="createResultBtn">
+                                <i class="fas fa-plus"></i>
+                                <span>Adaugă Rezultat</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="resultsList" class="items-list">
+                        <div class="loading-state">
+                            <div class="spinner"></div>
+                            <p>Se încarcă rezultatele...</p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Tab Content: Users -->
+            <div id="tab-users" class="tab-content">
+                <section class="admin-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-users"></i> Gestiune Utilizatori</h2>
+                        <div class="section-actions">
+                            <button class="btn-secondary" id="refreshUsersBtn" title="Reîncarcă">
+                                <i class="fas fa-sync-alt"></i>
+                                <span>Reîncarcă</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="usersList" class="items-list">
+                        <div class="loading-state">
+                            <div class="spinner"></div>
+                            <p>Se încarcă utilizatorii...</p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal pentru Sesiune -->
+    <div id="sessionModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="sessionModalTitle"><i class="fas fa-vote-yea"></i> Crează Sesiune Nouă</h3>
+                <button class="modal-close" id="closeSessionModalBtn">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="sessionForm">
+                    <input type="hidden" id="sessionId">
+                    <div class="form-group">
+                        <label for="sessionTitle"><i class="fas fa-heading"></i> Titlu Sesiune *</label>
+                        <input type="text" id="sessionTitle" required placeholder="Ex: Alegeri Consiliu Local">
+                    </div>
+                    <div class="form-group">
+                        <label for="sessionDescription"><i class="fas fa-align-left"></i> Descriere</label>
+                        <textarea id="sessionDescription" rows="4" placeholder="Descrierea sesiunii de vot..."></textarea>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="sessionStatus"><i class="fas fa-toggle-on"></i> Status</label>
+                            <select id="sessionStatus">
+                                <option value="active">Activă</option>
+                                <option value="inactive">Inactivă</option>
+                                <option value="completed">Finalizată</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="sessionDateStart"><i class="fas fa-calendar-alt"></i> Data Început</label>
+                            <input type="datetime-local" id="sessionDateStart">
+                        </div>
+                        <div class="form-group">
+                            <label for="sessionDateEnd"><i class="fas fa-calendar-times"></i> Data Sfârșit</label>
+                            <input type="datetime-local" id="sessionDateEnd">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="sessionOptions"><i class="fas fa-list"></i> Opțiuni de Vot (câte una pe linie) *</label>
+                        <textarea id="sessionOptions" rows="6" placeholder="Opțiunea 1&#10;Opțiunea 2&#10;Opțiunea 3" required></textarea>
+                        <small class="form-hint">Minimum 2 opțiuni sunt necesare</small>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn-secondary" id="cancelSessionBtn">
+                            <i class="fas fa-times"></i> Anulează
+                        </button>
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-save"></i> Salvează
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal pentru Noutate -->
+    <div id="newsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="newsModalTitle"><i class="fas fa-newspaper"></i> Adaugă Noutate</h3>
+                <button class="modal-close" id="closeNewsModalBtn">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="newsForm">
+                    <input type="hidden" id="newsId">
+                    <div class="form-group">
+                        <label for="newsTitle"><i class="fas fa-heading"></i> Titlu *</label>
+                        <input type="text" id="newsTitle" required placeholder="Titlul noutății">
+                    </div>
+                    <div class="form-group">
+                        <label for="newsContent"><i class="fas fa-align-left"></i> Conținut</label>
+                        <textarea id="newsContent" rows="8" placeholder="Conținutul noutății..."></textarea>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="newsAuthor"><i class="fas fa-user"></i> Autor</label>
+                            <input type="text" id="newsAuthor" value="Administrator" placeholder="Numele autorului">
+                        </div>
+                        <div class="form-group">
+                            <label for="newsStatus"><i class="fas fa-toggle-on"></i> Status</label>
+                            <select id="newsStatus">
+                                <option value="active">Activă</option>
+                                <option value="inactive">Inactivă</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn-secondary" id="cancelNewsBtn">
+                            <i class="fas fa-times"></i> Anulează
+                        </button>
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-save"></i> Salvează
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal pentru Rezultat -->
+    <div id="resultModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="resultModalTitle"><i class="fas fa-trophy"></i> Adaugă Rezultat</h3>
+                <button class="modal-close" id="closeResultModalBtn">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="resultForm">
+                    <input type="hidden" id="resultId">
+                    <div class="form-group">
+                        <label for="resultTitle"><i class="fas fa-heading"></i> Titlu *</label>
+                        <input type="text" id="resultTitle" required placeholder="Titlul rezultatului">
+                    </div>
+                    <div class="form-group">
+                        <label for="resultDescription"><i class="fas fa-align-left"></i> Descriere</label>
+                        <textarea id="resultDescription" rows="5" placeholder="Descrierea rezultatului..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="resultSessionId"><i class="fas fa-vote-yea"></i> Sesiune (opțional)</label>
+                        <select id="resultSessionId">
+                            <option value="">Selectează sesiune</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="resultTotalVotes"><i class="fas fa-poll"></i> Total Voturi</label>
+                            <input type="number" id="resultTotalVotes" min="0" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="resultWinner"><i class="fas fa-trophy"></i> Câștigător</label>
+                            <input type="text" id="resultWinner" placeholder="Numele câștigătorului">
+                        </div>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn-secondary" id="cancelResultBtn">
+                            <i class="fas fa-times"></i> Anulează
+                        </button>
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-save"></i> Salvează
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="../js/auth.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+</html>

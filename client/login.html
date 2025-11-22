@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Autentificare - Sistem Vot Electronic</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/utilities.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="auth-page">
+    <!-- Navigation Bar -->
+    <nav class="navbar auth-navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <a href="index.html">
+                    <i class="fas fa-vote-yea"></i>
+                    <span>Vot Electronic</span>
+                </a>
+            </div>
+            <ul class="nav-menu" id="authNavMenu">
+                <li>
+                    <a href="index.html" class="nav-link">
+                        <i class="fas fa-home"></i>
+                        <span>Pagina Principală</span>
+                    </a>
+                </li>
+            </ul>
+            <div class="nav-toggle" id="authNavToggle">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="auth-container">
+        <div class="auth-card">
+            <!-- Secțiune Autentificare -->
+            <div id="loginSection">
+                <div class="auth-header">
+                    <h2>Autentificare</h2>
+                    <p>Introduceți datele pentru a accesa sistemul</p>
+                </div>
+                
+                <form id="loginForm" class="auth-form">
+                    <div class="form-group">
+                        <label for="loginIdnp">IDNP *</label>
+                        <input type="text" id="loginIdnp" name="idnp" placeholder="Introduceți IDNP (13 cifre)" maxlength="13" required>
+                    </div>
+                    
+                    <div class="form-group password-group">
+                        <label for="loginPassword">Parolă *</label>
+                        <div class="password-input-container">
+                            <input type="password" id="loginPassword" name="parola" placeholder="Introduceți parola" required>
+                            <button type="button" class="toggle-password" id="toggleLoginPassword">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Secțiune pentru cod de verificare (afișată după introducerea parolei corecte) -->
+                    <div id="verificationSection" style="display: none;">
+                        <div class="form-group">
+                            <label><i class="fas fa-shield-alt"></i> Metodă de verificare *</label>
+                            <div class="verification-method-selector">
+                                <label class="method-option">
+                                    <input type="radio" name="verificationMethod" value="email" checked>
+                                    <i class="fas fa-envelope"></i>
+                                    <span>Email</span>
+                                </label>
+                                <label class="method-option">
+                                    <input type="radio" name="verificationMethod" value="telefon">
+                                    <i class="fas fa-sms"></i>
+                                    <span>SMS</span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="verificationCodeInput">Cod de Verificare *</label>
+                            <input type="text" 
+                                   id="verificationCodeInput" 
+                                   name="verificationCode" 
+                                   placeholder="Introduceți codul de 6 cifre" 
+                                   maxlength="6" 
+                                   pattern="[0-9]{6}"
+                                   inputmode="numeric"
+                                   autocomplete="one-time-code">
+                            <small>
+                                <i class="fas fa-info-circle"></i> 
+                                Codul a fost trimis. Verifică <span id="verificationMethodText">email-ul</span>.
+                                <a href="#" id="resendCodeLink" style="margin-left: 10px;">Retrimite cod</a>
+                            </small>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-full" id="loginSubmitBtn">
+                        <i class="fas fa-sign-in-alt"></i> <span id="loginSubmitText">Autentificare</span>
+                    </button>
+                    
+                    <div class="auth-footer">
+                        <p>Nu aveți cont? <a href="#" id="showRegister">Înregistrați-vă</a></p>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Secțiune Înregistrare -->
+            <div id="registerSection" style="display: none;">
+                <div class="auth-header">
+                    <h2>Înregistrare</h2>
+                    <p>Creați un cont nou în sistem</p>
+                </div>
+                
+                <form id="registerForm" class="auth-form">
+                    <div class="form-group">
+                        <label for="regIdnp">IDNP *</label>
+                        <input type="text" id="regIdnp" name="idnp" placeholder="Introduceți IDNP (13 cifre)" maxlength="13" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="regNume">Nume și Prenume</label>
+                        <input type="text" id="regNume" name="nume" placeholder="Introduceți numele complet">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="regEmail">Email</label>
+                        <input type="email" id="regEmail" name="email" placeholder="Introduceți adresa de email">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="regTelefon">Telefon</label>
+                        <input type="tel" id="regTelefon" name="telefon" placeholder="Introduceți numărul de telefon">
+                    </div>
+                    
+                    <div class="form-group password-group">
+                        <label for="regPassword">Parolă *</label>
+                        <div class="password-input-container">
+                            <input type="password" id="regPassword" name="parola" placeholder="Creați o parolă" required>
+                            <button type="button" class="toggle-password" id="toggleRegPassword">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group password-group">
+                        <label for="regConfirmPassword">Confirmă Parola *</label>
+                        <div class="password-input-container">
+                            <input type="password" id="regConfirmPassword" placeholder="Reintroduceți parola" required>
+                            <button type="button" class="toggle-password" id="toggleRegConfirmPassword">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-full">
+                        <i class="fas fa-user-plus"></i> Înregistrare
+                    </button>
+                    
+                    <div class="auth-footer">
+                        <p>Aveți deja cont? <a href="#" id="showLogin">Autentificați-vă</a></p>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Secțiune Cod Verificare -->
+            <div id="codeSection" style="display: none;">
+                <div class="auth-header">
+                    <h2><i class="fas fa-shield-alt"></i> Verificare Cod</h2>
+                    <p>Introduceți codul de verificare primit prin email sau SMS</p>
+                    <div id="codeInfo" class="code-info" style="display: none;">
+                        <i class="fas fa-info-circle"></i>
+                        <span id="codeInfoText"></span>
+                    </div>
+                </div>
+                
+                <form id="codeForm" class="auth-form">
+                    <input type="hidden" id="selectedIdnp">
+                    <input type="hidden" id="selectedPassword">
+                    
+                    <div class="form-group">
+                        <label for="verificationCode">Cod de Verificare *</label>
+                        <input type="text" id="verificationCode" name="code" 
+                               placeholder="Introduceți codul de 6 cifre" 
+                               maxlength="6" 
+                               pattern="[0-9]{6}"
+                               inputmode="numeric"
+                               required
+                               autocomplete="one-time-code">
+                        <small>
+                            <i class="fas fa-envelope"></i> Verifică email-ul sau 
+                            <i class="fas fa-sms"></i> SMS-ul pentru codul de verificare
+                        </small>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-full">
+                        <i class="fas fa-check-circle"></i> Verifică Cod
+                    </button>
+                    
+                    <div class="auth-footer">
+                        <p>Nu ați primit codul? <a href="#" id="requestNewCode">Trimite cod nou</a></p>
+                        <p><a href="#" id="backToLogin">← Înapoi la autentificare</a></p>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script>
+        // Mobile menu toggle for auth page
+        document.addEventListener('DOMContentLoaded', function() {
+            const navToggle = document.getElementById('authNavToggle');
+            const navMenu = document.getElementById('authNavMenu');
+            
+            if (navToggle && navMenu) {
+                navToggle.addEventListener('click', function() {
+                    navMenu.classList.toggle('active');
+                    navToggle.classList.toggle('active');
+                });
+            }
+        });
+    </script>
+</body>
+</html>

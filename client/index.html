@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vot Electronic - Sistem Modern</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/utilities.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <a href="index.html">
+                    <h1>Vot Electronic</h1>
+                </a>
+            </div>
+            <div class="nav-menu" id="nav-menu">
+                <a href="#noutati" class="nav-link">Noutăți</a>
+                <a href="#regulamente" class="nav-link">Regulamente</a>
+                <a href="#rezultate" class="nav-link">Rezultate</a>
+                <span id="authLinks">
+                    <a href="login.html" class="nav-link">Autentificare</a>
+                </span>
+                <span id="adminLink" style="display: none;">
+                    <a href="admin/admin.html" class="nav-link admin-link">
+                        <i class="fas fa-user-shield"></i>
+                        <span>Panou Admin</span>
+                    </a>
+                </span>
+                <span id="userLink" style="display: none;">
+                    <a href="dashboard.html" class="nav-link">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </span>
+                <button id="logoutBtnMain" class="btn-logout" style="display: none;">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Deconectare</span>
+                </button>
+            </div>
+            <div class="nav-toggle" id="nav-toggle">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-container">
+            <div class="hero-content">
+                <h2 class="hero-title">Sistem Modern de Vot Electronic</h2>
+                <p class="hero-description">Participă democratic și în siguranță la procesele electorale</p>
+                <div class="hero-buttons">
+                    <a href="login.html" class="btn btn-primary">Autentifică-te</a>
+                    <a href="#noutati" class="btn btn-secondary">Află mai mult</a>
+                </div>
+            </div>
+            <div class="hero-visual">
+                <div class="voting-animation">
+                    <div class="vote-card">
+                        <div class="vote-header">
+                            <h3>Vot Electronic Securizat</h3>
+                        </div>
+                        <div class="vote-options">
+                            <div class="vote-option">
+                                <i class="fas fa-check-circle"></i>
+                                <span>Vot Anonim</span>
+                            </div>
+                            <div class="vote-option">
+                                <i class="fas fa-shield-alt"></i>
+                                <span>Securitate Maximă</span>
+                            </div>
+                            <div class="vote-option">
+                                <i class="fas fa-bolt"></i>
+                                <span>Rezultate Instant</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Noutati Section -->
+    <section id="noutati" class="section">
+        <div class="container">
+            <h2 class="section-title">Noutăți</h2>
+            <div class="news-grid" id="newsContainer">
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                    <p>Se încarcă noutățile...</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Regulamente Section -->
+    <section id="regulamente" class="section bg-light">
+        <div class="container">
+            <h2 class="section-title">Regulamente</h2>
+            <div class="regulations-grid">
+                <div class="regulation-card">
+                    <div class="regulation-icon">
+                        <i class="fas fa-file-alt"></i>
+                    </div>
+                    <h3 class="regulation-title">Regulamente și Metodologii</h3>
+                    <p class="regulation-description">Regulile și procedurile generale pentru votul electronic și procesele electorale.</p>
+                    <a href="https://ance.gov.md/content/regulamente-%C5%9Fi-metodologii" target="_blank" rel="noopener noreferrer" class="btn btn-outline">
+                        Vezi documentul <i class="fas fa-external-link-alt"></i>
+                    </a>
+                </div>
+                <div class="regulation-card">
+                    <div class="regulation-icon">
+                        <i class="fas fa-user-shield"></i>
+                    </div>
+                    <h3 class="regulation-title">Securitatea Datelor</h3>
+                    <p class="regulation-description">Măsurile de securitate și protecția datelor personale conform legislației Republicii Moldova.</p>
+                    <a href="https://www.legis.md/cautare/getResults?doc_id=123456&lang=ro" target="_blank" rel="noopener noreferrer" class="btn btn-outline">
+                        Vezi documentul <i class="fas fa-external-link-alt"></i>
+                    </a>
+                </div>
+                <div class="regulation-card">
+                    <div class="regulation-icon">
+                        <i class="fas fa-vote-yea"></i>
+                    </div>
+                    <h3 class="regulation-title">Procedura de Vot</h3>
+                    <p class="regulation-description">Pașii detaliați pentru participarea la procesul de vot electronic în Republica Moldova.</p>
+                    <a href="https://www.cec.md/" target="_blank" rel="noopener noreferrer" class="btn btn-outline">
+                        Vezi documentul <i class="fas fa-external-link-alt"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Rezultate Section -->
+    <section id="rezultate" class="section">
+        <div class="container">
+            <h2 class="section-title">Rezultate</h2>
+            <div class="results-container">
+                <div class="results-header">
+                    <h3>Ultimele rezultate</h3>
+                    <div class="results-filter">
+                        <select id="electionFilter">
+                            <option value="all">Toate alegerile</option>
+                            <option value="local">Alegeri locale</option>
+                            <option value="national">Alegeri naționale</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="results-list" id="resultsContainer">
+                    <div class="loading-state">
+                        <div class="spinner"></div>
+                        <p>Se încarcă rezultatele...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>Vot Electronic</h3>
+                    <p>Sistem modern și securizat pentru procesele electorale democratice.</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Linkuri rapide</h4>
+                    <ul>
+                        <li><a href="#noutati">Noutăți</a></li>
+                        <li><a href="#regulamente">Regulamente</a></li>
+                        <li><a href="#rezultate">Rezultate</a></li>
+                        <li><a href="login.html">Autentificare</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Contact</h4>
+                    <ul>
+                        <li><i class="fas fa-envelope"></i> contact@votelectronic.md</li>
+                        <li><i class="fas fa-phone"></i> +373 67891234</li>
+                        <li><i class="fas fa-map-marker-alt"></i> Moldova, Chișinău</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 Vot Electronic. Toate drepturile rezervate.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/auth.js"></script>
+    <script src="js/navigation.js"></script>
+    <script src="js/script.js"></script>
+    <script>
+        // Încarcă noutățile și rezultatele dinamic
+        async function loadNews() {
+            const container = document.getElementById('newsContainer');
+            if (!container) return;
+
+            try {
+                const response = await fetch('/api/news');
+                if (response.ok) {
+                    const news = await response.json();
+                    const activeNews = news.filter(item => item.status === 'active').slice(0, 6);
+                    
+                    if (activeNews.length === 0) {
+                        container.innerHTML = '<div class="empty-state"><p>Nu există noutăți disponibile.</p></div>';
+                        return;
+                    }
+
+                    container.innerHTML = activeNews.map(item => {
+                        // Formatează data corect
+                        let formattedDate = 'Data necunoscută';
+                        if (item.data_publicarii) {
+                            try {
+                                const date = new Date(item.data_publicarii);
+                                // Verifică dacă data este validă (nu este epoch 0)
+                                if (!isNaN(date.getTime()) && date.getTime() > 0) {
+                                    formattedDate = date.toLocaleDateString('ro-RO', {
+                                        year: 'numeric',
+                                        month: 'long',
+                                        day: 'numeric'
+                                    });
+                                } else {
+                                    // Dacă data este invalidă, folosește data curentă
+                                    formattedDate = new Date().toLocaleDateString('ro-RO', {
+                                        year: 'numeric',
+                                        month: 'long',
+                                        day: 'numeric'
+                                    });
+                                }
+                            } catch (e) {
+                                console.error('Eroare la formatarea datei:', e, item.data_publicarii);
+                                formattedDate = new Date().toLocaleDateString('ro-RO', {
+                                    year: 'numeric',
+                                    month: 'long',
+                                    day: 'numeric'
+                                });
+                            }
+                        } else {
+                            // Dacă nu există dată, folosește data curentă
+                            formattedDate = new Date().toLocaleDateString('ro-RO', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                            });
+                        }
+                        
+                        return `
+                            <div class="news-card">
+                                <div class="news-date">${formattedDate}</div>
+                                <h3 class="news-title">${escapeHtml(item.titlu)}</h3>
+                                <p class="news-excerpt">${escapeHtml(item.continut ? item.continut.substring(0, 150) : '')}${item.continut && item.continut.length > 150 ? '...' : ''}</p>
+                                ${item.autor ? `<p class="news-author"><i class="fas fa-user"></i> ${escapeHtml(item.autor)}</p>` : ''}
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    container.innerHTML = '<div class="empty-state"><p>Eroare la încărcarea noutăților.</p></div>';
+                }
+            } catch (error) {
+                console.error('Eroare la încărcarea noutăților:', error);
+                container.innerHTML = '<div class="empty-state"><p>Eroare la încărcarea noutăților.</p></div>';
+            }
+        }
+
+        async function loadResults() {
+            const container = document.getElementById('resultsContainer');
+            if (!container) return;
+
+            try {
+                const response = await fetch('/api/results');
+                if (response.ok) {
+                    const results = await response.json();
+                    const recentResults = results.slice(0, 5);
+                    
+                    if (recentResults.length === 0) {
+                        container.innerHTML = '<div class="empty-state"><p>Nu există rezultate disponibile.</p></div>';
+                        return;
+                    }
+
+                    container.innerHTML = recentResults.map(item => {
+                        const date = new Date(item.data_publicarii || item.created_at);
+                        const formattedDate = date.toLocaleDateString('ro-RO', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                        });
+                        
+                        return `
+                            <div class="result-item">
+                                <div class="result-info">
+                                    <h4 class="result-title">${escapeHtml(item.titlu)}</h4>
+                                    ${item.session_titlu ? `<p class="result-session">${escapeHtml(item.session_titlu)}</p>` : ''}
+                                    <p class="result-date">${formattedDate}</p>
+                                    ${item.descriere ? `<p class="result-description">${escapeHtml(item.descriere.substring(0, 100))}${item.descriere.length > 100 ? '...' : ''}</p>` : ''}
+                                </div>
+                                <div class="result-status completed">
+                                    <span>Finalizat</span>
+                                </div>
+                                ${item.castigator ? `<div class="result-winner"><i class="fas fa-trophy"></i> ${escapeHtml(item.castigator)}</div>` : ''}
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    container.innerHTML = '<div class="empty-state"><p>Eroare la încărcarea rezultatelor.</p></div>';
+                }
+            } catch (error) {
+                console.error('Eroare la încărcarea rezultatelor:', error);
+                container.innerHTML = '<div class="empty-state"><p>Eroare la încărcarea rezultatelor.</p></div>';
+            }
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Încarcă datele când se încarcă pagina
+        document.addEventListener('DOMContentLoaded', () => {
+            loadNews();
+            loadResults();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panou Votant - Sistem Vot Electronic</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/utilities.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <header>
+        <nav class="navbar">
+            <div class="nav-container">
+                <div class="nav-brand">
+                    <a href="index.html">
+                        <i class="fas fa-vote-yea"></i>
+                        <span>Vot Electronic</span>
+                    </a>
+                </div>
+                <ul class="nav-menu">
+                    <li>
+                        <a href="index.html" class="nav-link active">
+                            <i class="fas fa-home"></i>
+                            <span>Acasă</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="dashboard.html" class="nav-link">
+                            <i class="fas fa-tachometer-alt"></i>
+                            <span>Panou</span>
+                        </a>
+                    </li>
+                    <li class="user-info">
+                        <span id="userWelcome">
+                            <i class="fas fa-user-circle"></i>
+                            <span>Se încarcă...</span>
+                        </span>
+                    </li>
+                    <li>
+                        <button id="logoutBtn" class="btn-logout">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Deconectare</span>
+                        </button>
+                    </li>
+                </ul>
+                <div class="nav-toggle" id="navToggle">
+                    <span class="bar"></span>
+                    <span class="bar"></span>
+                    <span class="bar"></span>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="dashboard-main">
+        <div class="container">
+            <!-- Welcome Section -->
+            <section class="welcome-section">
+                <div class="welcome-card">
+                    <div class="welcome-content">
+                        <h1>
+                            <i class="fas fa-hand-paper"></i>
+                            Bun venit, <span id="userName">Utilizator</span>!
+                        </h1>
+                        <p>Participă la sesiunile active de vot și îți exprimă opinia</p>
+                    </div>
+                    <div class="welcome-stats">
+                        <div class="stat-item">
+                            <i class="fas fa-vote-yea"></i>
+                            <div>
+                                <span class="stat-number" id="activeSessionsCount">0</span>
+                                <span class="stat-label">Sesiuni Active</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Active Sessions Section -->
+            <section class="sessions-section">
+                <div class="section-header">
+                    <h2>
+                        <i class="fas fa-poll"></i>
+                        Sesiuni Active de Vot
+                    </h2>
+                    <button class="btn-refresh" id="refreshBtn" title="Reîncarcă sesiunile">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+
+                <div id="sessionsList" class="sessions-grid">
+                    <div class="loading-state">
+                        <div class="spinner"></div>
+                        <p>Se încarcă sesiunile...</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Info Section -->
+            <section class="info-section">
+                <div class="info-card">
+                    <div class="info-header">
+                        <i class="fas fa-info-circle"></i>
+                        <h3>Informații importante</h3>
+                    </div>
+                    <ul class="info-list">
+                        <li>
+                            <i class="fas fa-check-circle"></i>
+                            Puteți vota o singură dată în fiecare sesiune
+                        </li>
+                        <li>
+                            <i class="fas fa-shield-alt"></i>
+                            Votul este anonim și securizat
+                        </li>
+                        <li>
+                            <i class="fas fa-eye"></i>
+                            Verificați datele sesiunii înainte de a vota
+                        </li>
+                        <li>
+                            <i class="fas fa-lock"></i>
+                            Votul nu poate fi modificat după confirmare
+                        </li>
+                    </ul>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Vote Modal -->
+    <div id="voteModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">
+                    <i class="fas fa-vote-yea"></i>
+                    Votează
+                </h3>
+                <button class="modal-close" id="modalClose">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="modalDescription" class="modal-description"></div>
+                <p class="modal-info">Alegeți opțiunea preferată:</p>
+                <div id="optionsList" class="options-list">
+                    <!-- Opțiunile vor fi încărcate dinamic -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Messages -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="js/auth.js"></script>
+    <script src="js/voting.js"></script>
+</body>
+</html>
