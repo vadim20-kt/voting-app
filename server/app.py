@@ -682,36 +682,6 @@ def serve_admin_files(filename):
 def serve_admin_redirect():
     return send_from_directory(app.static_folder, 'admin/admin.html')
 
-# Debug route - check table structure
-@app.route('/api/debug-tables')
-def debug_tables():
-    try:
-        with SessionLocal() as db:
-            # Check all tables
-            tables = db.execute(text("""
-                SELECT table_name 
-                FROM information_schema.tables 
-                WHERE table_schema = 'public'
-            """))
-            table_list = [row[0] for row in tables]
-            
-            # Check columns for each table
-            tables_info = {}
-            for table_name in table_list:
-                columns = db.execute(text(f"""
-                    SELECT column_name, data_type 
-                    FROM information_schema.columns 
-                    WHERE table_name = '{table_name}'
-                """))
-                tables_info[table_name] = [dict(row) for row in columns]
-            
-            return jsonify({
-                "tables": table_list,
-                "tables_info": tables_info
-            })
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 10000))
     debug = os.getenv('FLASK_ENV') != 'production'
