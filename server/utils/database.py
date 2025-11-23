@@ -9,7 +9,7 @@ DB_TYPE = None
 DB_CONNECTOR = None
 
 def detect_db_type():
-    """Detectează automat tipul de bază de date"""
+    """Detectează automat tipul de bază de date - doar PostgreSQL"""
     global DB_TYPE, DB_CONNECTOR
     
     # Verifică dacă există URL PostgreSQL (Render)
@@ -20,127 +20,82 @@ def detect_db_type():
             import psycopg2  # type: ignore
             from psycopg2.extras import RealDictCursor  # type: ignore
             DB_CONNECTOR = psycopg2
-            print("✓ Detectat PostgreSQL")
+            print("✓ Detectat PostgreSQL (Render)")
             return 'postgresql'
         except ImportError:
-            print("⚠️ psycopg2 nu este instalat, încearcă MySQL")
-    
-    # Verifică dacă există URL MySQL (Heroku)
-    mysql_url = os.getenv('CLEARDB_DATABASE_URL') or os.getenv('JAWSDB_URL')
-    if mysql_url and 'mysql' in mysql_url.lower():
-        DB_TYPE = 'mysql'
-        try:
-            import mysql.connector
-            from mysql.connector import Error
-            DB_CONNECTOR = mysql.connector
-            print("✓ Detectat MySQL (Heroku)")
-            return 'mysql'
-        except ImportError:
-            print("⚠️ mysql-connector nu este instalat")
-    
-    # Default: MySQL local
-    DB_TYPE = 'mysql'
-    try:
-        import mysql.connector
-        from mysql.connector import Error
-        DB_CONNECTOR = mysql.connector
-        print("✓ Folosind MySQL (local)")
-        return 'mysql'
-    except ImportError:
-        # Fallback la PostgreSQL dacă MySQL nu este disponibil
-        try:
-            import psycopg2
-            from psycopg2.extras import RealDictCursor
-            DB_CONNECTOR = psycopg2
-            DB_TYPE = 'postgresql'
-            print("✓ Folosind PostgreSQL (fallback)")
-            return 'postgresql'
-        except ImportError:
-            print("❌ Nici MySQL, nici PostgreSQL nu sunt disponibile!")
+            print("❌ psycopg2 nu este instalat! Instalează cu: pip install psycopg2-binary")
             return None
+    
+    # Verifică variabile de mediu pentru PostgreSQL local (development)
+    if os.getenv('DB_HOST') or os.getenv('DB_NAME'):
+        DB_TYPE = 'postgresql'
+        try:
+            import psycopg2  # type: ignore
+            from psycopg2.extras import RealDictCursor  # type: ignore
+            DB_CONNECTOR = psycopg2
+            print("✓ Folosind PostgreSQL (local)")
+            return 'postgresql'
+        except ImportError:
+            print("❌ psycopg2 nu este instalat! Instalează cu: pip install psycopg2-binary")
+            return None
+    
+    # Dacă nu găsește PostgreSQL, returnează eroare
+    print("❌ Nu s-a găsit configurație PostgreSQL!")
+    print("   Setează DATABASE_URL sau variabilele DB_HOST, DB_NAME, etc.")
+    return None
 
 def get_db_config():
-    """Obține configurația bazei de date"""
+    """Obține configurația bazei de date - doar PostgreSQL"""
     db_type = detect_db_type()
     
-    # PostgreSQL (Render)
-    if db_type == 'postgresql':
-        postgres_url = os.getenv('DATABASE_URL') or os.getenv('POSTGRES_URL')
-        if postgres_url:
-            try:
-                parsed = urlparse(postgres_url)
-                config = {
-                    'host': parsed.hostname,
-                    'user': parsed.username,
-                    'password': parsed.password,
-                    'database': parsed.path[1:] if parsed.path else None,
-                    'port': parsed.port or 5432
-                }
-                print(f"✓ Conectare PostgreSQL: {config['host']}")
-                return ('postgresql', config)
-            except Exception as e:
-                print(f"⚠️ Eroare la parsarea URL-ului PostgreSQL: {e}")
-        
-        # Fallback la variabile de mediu
-        config = {
-            'host': os.getenv('DB_HOST', 'localhost'),
-            'user': os.getenv('DB_USER', 'postgres'),
-            'password': os.getenv('DB_PASSWORD', ''),
-            'database': os.getenv('DB_NAME', 'voting_app'),
-            'port': int(os.getenv('DB_PORT', '5432'))
-        }
-        return ('postgresql', config)
+    if db_type != 'postgresql':
+        raise ValueError("Doar PostgreSQL este suportat! Setează DATABASE_URL sau variabilele de mediu pentru PostgreSQL.")
     
-    # MySQL (Heroku sau local)
-    mysql_url = os.getenv('CLEARDB_DATABASE_URL') or os.getenv('JAWSDB_URL')
-    if mysql_url:
+    # PostgreSQL (Render) - din DATABASE_URL
+    postgres_url = os.getenv('DATABASE_URL') or os.getenv('POSTGRES_URL')
+    if postgres_url:
         try:
-            parsed = urlparse(mysql_url)
+            parsed = urlparse(postgres_url)
             config = {
                 'host': parsed.hostname,
                 'user': parsed.username,
                 'password': parsed.password,
                 'database': parsed.path[1:] if parsed.path else None,
-                'port': parsed.port or 3306,
-                'charset': 'utf8mb4',
-                'collation': 'utf8mb4_unicode_ci'
+                'port': parsed.port or 5432
             }
-            print(f"✓ Conectare MySQL: {config['host']}")
-            return ('mysql', config)
+            print(f"✓ Conectare PostgreSQL: {config['host']}")
+            return ('postgresql', config)
         except Exception as e:
-            print(f"⚠️ Eroare la parsarea URL-ului MySQL: {e}")
+            print(f"⚠️ Eroare la parsarea URL-ului PostgreSQL: {e}")
     
-    # MySQL local
+    # PostgreSQL local - din variabile de mediu
     config = {
         'host': os.getenv('DB_HOST', 'localhost'),
-        'user': os.getenv('DB_USER', 'root'),
+        'user': os.getenv('DB_USER', 'postgres'),
         'password': os.getenv('DB_PASSWORD', ''),
         'database': os.getenv('DB_NAME', 'voting_app'),
-        'port': int(os.getenv('DB_PORT', '3306')),
-        'charset': 'utf8mb4',
-        'collation': 'utf8mb4_unicode_ci'
+        'port': int(os.getenv('DB_PORT', '5432'))
     }
-    return ('mysql', config)
+    print(f"✓ Conectare PostgreSQL local: {config['host']}")
+    return ('postgresql', config)
 
 def get_db_connection():
-    """Creează conexiunea la baza de date
+    """Creează conexiunea la baza de date - doar PostgreSQL
     Returns:
         tuple: (db_type, connection) sau None dacă eșuează
     """
     try:
         db_type, config = get_db_config()
         
-        if db_type == 'postgresql':
-            import psycopg2  # type: ignore
-            conn = psycopg2.connect(**config)
-            return ('postgresql', conn)
-        else:
-            import mysql.connector
-            from mysql.connector import Error
-            conn = mysql.connector.connect(**config)
-            return ('mysql', conn)
+        if db_type != 'postgresql':
+            raise ValueError("Doar PostgreSQL este suportat!")
+        
+        import psycopg2  # type: ignore
+        conn = psycopg2.connect(**config)
+        return ('postgresql', conn)
     except Exception as e:
-        print(f"Eroare la conectarea la baza de date: {e}")
+        print(f"❌ Eroare la conectarea la baza de date PostgreSQL: {e}")
+        print(f"   Verifică că DATABASE_URL este setat corect sau că variabilele DB_* sunt configurate.")
         return None
 
 def get_db_cursor(conn_tuple, dictionary=True):
@@ -157,15 +112,13 @@ def get_db_cursor(conn_tuple, dictionary=True):
     db_type, conn = conn_tuple
     
     try:
-        if db_type == 'postgresql':
-            from psycopg2.extras import RealDictCursor  # type: ignore
-            if dictionary:
-                return conn.cursor(cursor_factory=RealDictCursor)
-            return conn.cursor()
-        else:
-            if dictionary:
-                return conn.cursor(dictionary=True)
-            return conn.cursor()
+        if db_type != 'postgresql':
+            raise ValueError("Doar PostgreSQL este suportat!")
+        
+        from psycopg2.extras import RealDictCursor  # type: ignore
+        if dictionary:
+            return conn.cursor(cursor_factory=RealDictCursor)
+        return conn.cursor()
     except Exception as e:
         print(f"Eroare la crearea cursorului: {e}")
         return None
@@ -208,25 +161,17 @@ def init_db():
         return
     
     try:
-        # Sintaxă diferită pentru MySQL vs PostgreSQL
-        if db_type == 'postgresql':
-            # PostgreSQL syntax
-            auto_increment = "SERIAL"
-            tinyint = "BOOLEAN"
-            engine = ""
-            charset = ""
-            datetime_type = "TIMESTAMP"
-            insert_ignore = "ON CONFLICT DO NOTHING"
-            date_sub = "created_at < NOW() - INTERVAL '10 minutes'"
-        else:
-            # MySQL syntax
-            auto_increment = "INT AUTO_INCREMENT"
-            tinyint = "TINYINT(1)"
-            engine = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
-            charset = ""
-            datetime_type = "DATETIME"
-            insert_ignore = "INSERT IGNORE"
-            date_sub = "created_at < DATE_SUB(NOW(), INTERVAL 10 MINUTE)"
+        # PostgreSQL syntax
+        if db_type != 'postgresql':
+            raise ValueError("Doar PostgreSQL este suportat!")
+        
+        auto_increment = "SERIAL"
+        tinyint = "BOOLEAN"
+        engine = ""
+        charset = ""
+        datetime_type = "TIMESTAMP"
+        insert_ignore = "ON CONFLICT DO NOTHING"
+        date_sub = "created_at < NOW() - INTERVAL '10 minutes'"
         
         # Tabela utilizatori
         cursor.execute(f'''
@@ -267,34 +212,19 @@ def init_db():
         ''')
         
         # Tabela voturi
-        if db_type == 'postgresql':
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS votes (
-                    id SERIAL PRIMARY KEY,
-                    user_id INT,
-                    session_id INT,
-                    option_id INT,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-                    FOREIGN KEY (session_id) REFERENCES voting_sessions(id) ON DELETE CASCADE,
-                    FOREIGN KEY (option_id) REFERENCES vote_options(id) ON DELETE CASCADE,
-                    UNIQUE (user_id, session_id)
-                )
-            ''')
-        else:
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS votes (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
-                    user_id INT,
-                    session_id INT,
-                    option_id INT,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-                    FOREIGN KEY (session_id) REFERENCES voting_sessions(id) ON DELETE CASCADE,
-                    FOREIGN KEY (option_id) REFERENCES vote_options(id) ON DELETE CASCADE,
-                    UNIQUE KEY unique_user_session (user_id, session_id)
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-            ''')
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS votes (
+                id SERIAL PRIMARY KEY,
+                user_id INT,
+                session_id INT,
+                option_id INT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (session_id) REFERENCES voting_sessions(id) ON DELETE CASCADE,
+                FOREIGN KEY (option_id) REFERENCES vote_options(id) ON DELETE CASCADE,
+                UNIQUE (user_id, session_id)
+            )
+        ''')
         
         # Tabela coduri verificare
         cursor.execute(f'''
@@ -366,28 +296,17 @@ def init_db():
         admin_password = hashlib.md5('admin123'.encode()).hexdigest()
         user_password = hashlib.md5('user123'.encode()).hexdigest()
         
-        if db_type == 'postgresql':
-            cursor.execute('''
-                INSERT INTO users (idnp, nume, email, parola, is_admin) 
-                VALUES (%s, %s, %s, %s, %s)
-                ON CONFLICT (idnp) DO NOTHING
-            ''', ('1234567890123', 'Administrator', 'admin@vote.md', admin_password, True))
-            
-            cursor.execute('''
-                INSERT INTO users (idnp, nume, email, parola, is_admin) 
-                VALUES (%s, %s, %s, %s, %s)
-                ON CONFLICT (idnp) DO NOTHING
-            ''', ('1231231231231', 'Utilizator Demo', 'user@vote.md', user_password, False))
-        else:
-            cursor.execute('''
-                INSERT IGNORE INTO users (idnp, nume, email, parola, is_admin) 
-                VALUES (%s, %s, %s, %s, %s)
-            ''', ('1234567890123', 'Administrator', 'admin@vote.md', admin_password, 1))
-            
-            cursor.execute('''
-                INSERT IGNORE INTO users (idnp, nume, email, parola, is_admin) 
-                VALUES (%s, %s, %s, %s, %s)
-            ''', ('1231231231231', 'Utilizator Demo', 'user@vote.md', user_password, 0))
+        cursor.execute('''
+            INSERT INTO users (idnp, nume, email, parola, is_admin) 
+            VALUES (%s, %s, %s, %s, %s)
+            ON CONFLICT (idnp) DO NOTHING
+        ''', ('1234567890123', 'Administrator', 'admin@vote.md', admin_password, True))
+        
+        cursor.execute('''
+            INSERT INTO users (idnp, nume, email, parola, is_admin) 
+            VALUES (%s, %s, %s, %s, %s)
+            ON CONFLICT (idnp) DO NOTHING
+        ''', ('1231231231231', 'Utilizator Demo', 'user@vote.md', user_password, False))
         
         conn.commit()
         print(f"✅ Baza de date {db_type.upper()} este gata!")
