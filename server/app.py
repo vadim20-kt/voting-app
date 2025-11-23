@@ -82,19 +82,25 @@ def init_db():
         
     try:
         with engine.connect() as conn:
-            # Create all tables
+            # Drop existing tables if they exist
             conn.execute(text("""
-                CREATE TABLE IF NOT EXISTS users (
+                DROP TABLE IF EXISTS login_logs CASCADE;
+                DROP TABLE IF EXISTS voturi CASCADE;
+                DROP TABLE IF EXISTS rezultate CASCADE;
+                DROP TABLE IF EXISTS noutati CASCADE;
+                DROP TABLE IF EXISTS users CASCADE;
+            
+                -- Create all tables with correct schema
+                CREATE TABLE users (
                     id SERIAL PRIMARY KEY,
                     idnp VARCHAR(13) UNIQUE NOT NULL,
                     username VARCHAR(100) NOT NULL,
                     email VARCHAR(120) UNIQUE NOT NULL,
+                    phone VARCHAR(20),
                     password VARCHAR(200) NOT NULL,
                     is_admin BOOLEAN DEFAULT FALSE,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
-                ALTER TABLE users 
-                ADD COLUMN IF NOT EXISTS phone VARCHAR(20)
             """))
             
             conn.execute(text("""
