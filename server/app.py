@@ -94,32 +94,34 @@ def init_db():
         
     try:
         with engine.connect() as conn:
-            # Drop existing tables if they exist
+            # Drop existing tables if they exist (in the right order to respect foreign keys)
             conn.execute(text("""
-                DROP TABLE IF EXISTS login_logs CASCADE;
                 DROP TABLE IF EXISTS voturi CASCADE;
+                DROP TABLE IF EXISTS login_logs CASCADE;
                 DROP TABLE IF EXISTS rezultate CASCADE;
                 DROP TABLE IF EXISTS noutati CASCADE;
                 DROP TABLE IF EXISTS users CASCADE;
+            """))
             
-                -- Create all tables with correct schema
+            # Create all tables with correct schema
+            conn.execute(text("""
                 CREATE TABLE users (
                     id SERIAL PRIMARY KEY,
-    idnp VARCHAR(13) UNIQUE NOT NULL,
-    username VARCHAR(100) NOT NULL,
-    email VARCHAR(120) UNIQUE NOT NULL,
-    phone VARCHAR(20),
-    password VARCHAR(200) NOT NULL,
-    is_admin BOOLEAN DEFAULT FALSE,
-    is_verified BOOLEAN DEFAULT FALSE,
-    verification_token VARCHAR(200),
-    verification_token_expires TIMESTAMP,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    username VARCHAR(100) NOT NULL,
+                    email VARCHAR(120) UNIQUE NOT NULL,
+                    idnp VARCHAR(13) UNIQUE NOT NULL,
+                    phone VARCHAR(20),
+                    password VARCHAR(200) NOT NULL,
+                    is_admin BOOLEAN DEFAULT FALSE,
+                    is_verified BOOLEAN DEFAULT FALSE,
+                    verification_token VARCHAR(200),
+                    verification_token_expires TIMESTAMP,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
             """))
             
             conn.execute(text("""
-                CREATE TABLE IF NOT EXISTS rezultate (
+                CREATE TABLE rezultate (
                     id SERIAL PRIMARY KEY,
                     nume_candidat VARCHAR(100) NOT NULL,
                     partid VARCHAR(100),
@@ -129,7 +131,7 @@ def init_db():
             """))
             
             conn.execute(text("""
-                CREATE TABLE IF NOT EXISTS noutati (
+                CREATE TABLE noutati (
                     id SERIAL PRIMARY KEY,
                     titlu VARCHAR(200) NOT NULL,
                     continut TEXT,
@@ -138,18 +140,19 @@ def init_db():
             """))
             
             conn.execute(text("""
-                CREATE TABLE IF NOT EXISTS login_logs (
+                CREATE TABLE login_logs (
                     id SERIAL PRIMARY KEY,
                     user_id INTEGER,
                     idnp VARCHAR(13),
                     ip_address VARCHAR(45),
                     success BOOLEAN,
+                    reason TEXT,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """))
             
             conn.execute(text("""
-                CREATE TABLE IF NOT EXISTS voturi (
+                CREATE TABLE voturi (
                     id SERIAL PRIMARY KEY,
                     user_id INTEGER,
                     candidat_id INTEGER,
@@ -160,28 +163,28 @@ def init_db():
             # Add admin user if not exists
             admin_check = conn.execute(text("""
                 SELECT * FROM users WHERE username = 'admin' OR idnp = '1234567890123'
-            """))
-            admin_exists = admin_check.fetchone()
+            """)).fetchone()
             
-            if not admin_exists:
+            if not admin_check:
                 hashed_password = hash_password('admin123')
                 conn.execute(text("""
-                    INSERT INTO users (username, email, idnp, phone, password, is_admin) 
-                    VALUES ('admin', 'admin@voting.com', '1234567890123', '123456789', :password, TRUE)
+                    INSERT INTO users (username, email, idnp, phone, password, is_admin, is_verified) 
+                    VALUES ('admin', 'admin@voting.com', '1234567890123', '123456789', :password, TRUE, TRUE)
                 """), {'password': hashed_password})
                 logger.info("✅ Admin user created with IDNP: 1234567890123")
-            elif admin_exists.idnp != '1234567890123':
+            elif admin_check.idnp != '1234567890123':
                 # Update existing admin to use the correct IDNP
                 conn.execute(text("""
                     UPDATE users 
-                    SET idnp = '1234567890123' 
+                    SET idnp = '1234567890123',
+                        is_verified = TRUE
                     WHERE username = 'admin' AND idnp != '1234567890123'
                 """))
                 logger.info("✅ Updated admin user with correct IDNP")
             
-            # Add sample candidates
-            candidates_check = conn.execute(text("SELECT * FROM rezultate"))
-            if not candidates_check.fetchone():
+            # Add sample candidates if none exist
+            candidates_check = conn.execute(text("SELECT * FROM rezultate")).fetchone()
+            if not candidates_check:
                 conn.execute(text("""
                     INSERT INTO rezultate (nume_candidat, partid, numar_voturi) 
                     VALUES 
@@ -191,9 +194,9 @@ def init_db():
                 """))
                 logger.info("✅ Sample candidates added")
             
-            # Add sample news
-            news_check = conn.execute(text("SELECT * FROM noutati"))
-            if not news_check.fetchone():
+            # Add sample news if none exist
+            news_check = conn.execute(text("SELECT * FROM noutati")).fetchone()
+            if not news_check:
                 conn.execute(text("""
                     INSERT INTO noutati (titlu, continut) 
                     VALUES 
@@ -202,6 +205,8 @@ def init_db():
                 """))
                 logger.info("✅ Sample news added")
             
+            conn.commit()
+            logger.info("✅ Database initialized successfully")
             return True
             
     except Exception as e:
