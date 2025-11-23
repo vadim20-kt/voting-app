@@ -189,7 +189,6 @@ def init_db():
                 """))
                 logger.info("✅ Sample news added")
             
-            conn.commit()
             return True
             
     except Exception as e:
