@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from utils.database import get_db_connection
+from utils.database import get_db_connection, get_db_cursor
 import hashlib
 
 admin_bp = Blueprint('admin', __name__)
@@ -7,12 +7,20 @@ admin_bp = Blueprint('admin', __name__)
 @admin_bp.route('/stats', methods=['GET'])
 def get_stats():
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        conn_result = get_db_connection()
+        if not conn_result:
+            return jsonify({'error': 'Database connection failed'}), 500
+        
+        db_type, conn = conn_result
+        cursor = get_db_cursor(conn_result, dictionary=True)
+        
+        if not cursor:
+            return jsonify({'error': 'Failed to create cursor'}), 500
         
         # Total utilizatori
         cursor.execute("SELECT COUNT(*) as count FROM users")
-        total_users = cursor.fetchone()['count']
+        result = cursor.fetchone()
+        total_users = result['count'] if result else 0
         
         # Actualizează automat statusul sesiunilor expirate
         cursor.execute("""
@@ -32,7 +40,8 @@ def get_stats():
             AND (data_inceput IS NULL OR data_inceput <= NOW())
             AND (data_sfarsit IS NULL OR data_sfarsit >= NOW())
         """)
-        active_sessions = cursor.fetchone()['count']
+        result = cursor.fetchone()
+        active_sessions = result['count'] if result else 0
         
         # Total voturi
         cursor.execute("SELECT COUNT(*) as count FROM votes")
@@ -79,14 +88,23 @@ def get_stats():
             'total_results': 0
         }), 500
     finally:
-        if 'conn' in locals():
+        if 'conn_result' in locals() and conn_result:
+            conn_result[1].close()
+        elif 'conn' in locals() and conn:
             conn.close()
 
 @admin_bp.route('/users', methods=['GET'])
 def get_users():
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        conn_result = get_db_connection()
+        if not conn_result:
+            return jsonify({'error': 'Database connection failed'}), 500
+        
+        db_type, conn = conn_result
+        cursor = get_db_cursor(conn_result, dictionary=True)
+        
+        if not cursor:
+            return jsonify({'error': 'Failed to create cursor'}), 500
         
         cursor.execute("""
             SELECT id, idnp, nume, email, telefon, is_admin, data_inregistrare 
@@ -113,14 +131,20 @@ def get_users():
         print(f"Eroare users: {e}")
         return jsonify([]), 500
     finally:
-        if 'conn' in locals():
+        if 'conn_result' in locals() and conn_result:
+            conn_result[1].close()
+        elif 'conn' in locals() and conn:
             conn.close()
 
 @admin_bp.route('/sessions', methods=['GET'])
 def get_sessions():
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        conn_result = get_db_connection()
+        if not conn_result:
+            return jsonify({'error': 'Database connection failed'}), 500
+        
+        db_type, conn = conn_result
+        cursor = get_db_cursor(conn_result, dictionary=True)
         
         # Actualizează automat statusul sesiunilor expirate
         cursor.execute("""
@@ -185,7 +209,9 @@ def get_sessions():
         traceback.print_exc()
         return jsonify([]), 500
     finally:
-        if 'conn' in locals():
+        if 'conn_result' in locals() and conn_result:
+            conn_result[1].close()
+        elif 'conn' in locals() and conn:
             conn.close()
 
 @admin_bp.route('/sessions', methods=['POST'])
@@ -205,8 +231,12 @@ def create_session():
         if not options or len(options) < 2:
             return jsonify({'success': False, 'error': 'Sunt necesare cel puțin 2 opțiuni de vot'}), 400
         
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        conn_result = get_db_connection()
+        if not conn_result:
+            return jsonify({'error': 'Database connection failed'}), 500
+        
+        db_type, conn = conn_result
+        cursor = get_db_cursor(conn_result, dictionary=True)
         
         # Crează sesiunea
         cursor.execute("""
@@ -236,14 +266,20 @@ def create_session():
         print(f"Eroare create session: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
     finally:
-        if 'conn' in locals():
+        if 'conn_result' in locals() and conn_result:
+            conn_result[1].close()
+        elif 'conn' in locals() and conn:
             conn.close()
 
 @admin_bp.route('/sessions/<int:session_id>', methods=['DELETE'])
 def delete_session(session_id):
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        conn_result = get_db_connection()
+        if not conn_result:
+            return jsonify({'error': 'Database connection failed'}), 500
+        
+        db_type, conn = conn_result
+        cursor = get_db_cursor(conn_result, dictionary=True)
         
         # Verifică dacă sesiunea există
         cursor.execute("SELECT id FROM voting_sessions WHERE id = %s", (session_id,))
@@ -267,14 +303,20 @@ def delete_session(session_id):
         print(f"Eroare delete session: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
     finally:
-        if 'conn' in locals():
+        if 'conn_result' in locals() and conn_result:
+            conn_result[1].close()
+        elif 'conn' in locals() and conn:
             conn.close()
 
 @admin_bp.route('/sessions/<int:session_id>/results', methods=['GET'])
 def get_session_results(session_id):
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        conn_result = get_db_connection()
+        if not conn_result:
+            return jsonify({'error': 'Database connection failed'}), 500
+        
+        db_type, conn = conn_result
+        cursor = get_db_cursor(conn_result, dictionary=True)
         
         # Verifică dacă sesiunea există
         cursor.execute("SELECT titlu FROM voting_sessions WHERE id = %s", (session_id,))
@@ -318,14 +360,20 @@ def get_session_results(session_id):
         print(f"Eroare results: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
     finally:
-        if 'conn' in locals():
+        if 'conn_result' in locals() and conn_result:
+            conn_result[1].close()
+        elif 'conn' in locals() and conn:
             conn.close()
 
 @admin_bp.route('/users/<int:user_id>', methods=['DELETE'])
 def delete_user(user_id):
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        conn_result = get_db_connection()
+        if not conn_result:
+            return jsonify({'error': 'Database connection failed'}), 500
+        
+        db_type, conn = conn_result
+        cursor = get_db_cursor(conn_result, dictionary=True)
         
         # Verifică dacă utilizatorul există
         cursor.execute("SELECT id, is_admin FROM users WHERE id = %s", (user_id,))
@@ -354,15 +402,21 @@ def delete_user(user_id):
         print(f"Eroare delete user: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
     finally:
-        if 'conn' in locals():
+        if 'conn_result' in locals() and conn_result:
+            conn_result[1].close()
+        elif 'conn' in locals() and conn:
             conn.close()
 
 # ===== RUTE PENTRU NOUTĂȚI =====
 @admin_bp.route('/news', methods=['GET'])
 def get_news():
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        conn_result = get_db_connection()
+        if not conn_result:
+            return jsonify({'error': 'Database connection failed'}), 500
+        
+        db_type, conn = conn_result
+        cursor = get_db_cursor(conn_result, dictionary=True)
         
         cursor.execute("""
             SELECT * FROM noutati 
@@ -375,7 +429,9 @@ def get_news():
         print(f"Eroare get news: {e}")
         return jsonify([]), 500
     finally:
-        if 'conn' in locals():
+        if 'conn_result' in locals() and conn_result:
+            conn_result[1].close()
+        elif 'conn' in locals() and conn:
             conn.close()
 
 @admin_bp.route('/news', methods=['POST'])
@@ -389,8 +445,12 @@ def create_news():
         if not titlu:
             return jsonify({'success': False, 'error': 'Titlul este obligatoriu'}), 400
         
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        conn_result = get_db_connection()
+        if not conn_result:
+            return jsonify({'error': 'Database connection failed'}), 500
+        
+        db_type, conn = conn_result
+        cursor = get_db_cursor(conn_result, dictionary=True)
         
         # Asigură-te că data_publicarii este setată explicit
         from datetime import datetime
@@ -411,7 +471,9 @@ def create_news():
         print(f"Eroare create news: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
     finally:
-        if 'conn' in locals():
+        if 'conn_result' in locals() and conn_result:
+            conn_result[1].close()
+        elif 'conn' in locals() and conn:
             conn.close()
 
 @admin_bp.route('/news/<int:news_id>', methods=['PUT'])
@@ -423,8 +485,12 @@ def update_news(news_id):
         autor = data.get('autor')
         status = data.get('status')
         
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        conn_result = get_db_connection()
+        if not conn_result:
+            return jsonify({'error': 'Database connection failed'}), 500
+        
+        db_type, conn = conn_result
+        cursor = get_db_cursor(conn_result, dictionary=True)
         
         # Verifică dacă noutatea există
         cursor.execute("SELECT id FROM noutati WHERE id = %s", (news_id,))
@@ -462,14 +528,20 @@ def update_news(news_id):
         print(f"Eroare update news: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
     finally:
-        if 'conn' in locals():
+        if 'conn_result' in locals() and conn_result:
+            conn_result[1].close()
+        elif 'conn' in locals() and conn:
             conn.close()
 
 @admin_bp.route('/news/<int:news_id>', methods=['DELETE'])
 def delete_news(news_id):
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        conn_result = get_db_connection()
+        if not conn_result:
+            return jsonify({'error': 'Database connection failed'}), 500
+        
+        db_type, conn = conn_result
+        cursor = get_db_cursor(conn_result, dictionary=True)
         
         cursor.execute("DELETE FROM noutati WHERE id = %s", (news_id,))
         conn.commit()
@@ -479,15 +551,21 @@ def delete_news(news_id):
         print(f"Eroare delete news: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
     finally:
-        if 'conn' in locals():
+        if 'conn_result' in locals() and conn_result:
+            conn_result[1].close()
+        elif 'conn' in locals() and conn:
             conn.close()
 
 # ===== RUTE PENTRU REZULTATE =====
 @admin_bp.route('/results', methods=['GET'])
 def get_results():
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        conn_result = get_db_connection()
+        if not conn_result:
+            return jsonify({'error': 'Database connection failed'}), 500
+        
+        db_type, conn = conn_result
+        cursor = get_db_cursor(conn_result, dictionary=True)
         
         cursor.execute("""
             SELECT r.*, vs.titlu as session_titlu
@@ -502,7 +580,9 @@ def get_results():
         print(f"Eroare get results: {e}")
         return jsonify([]), 500
     finally:
-        if 'conn' in locals():
+        if 'conn_result' in locals() and conn_result:
+            conn_result[1].close()
+        elif 'conn' in locals() and conn:
             conn.close()
 
 @admin_bp.route('/results', methods=['POST'])
@@ -524,8 +604,12 @@ def create_result():
         elif id_sesiune:
             id_sesiune = int(id_sesiune)
         
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        conn_result = get_db_connection()
+        if not conn_result:
+            return jsonify({'error': 'Database connection failed'}), 500
+        
+        db_type, conn = conn_result
+        cursor = get_db_cursor(conn_result, dictionary=True)
         
         print(f"📝 Creare rezultat: titlu={titlu}, id_sesiune={id_sesiune}, total_voturi={total_voturi}")
         
@@ -550,7 +634,9 @@ def create_result():
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
     finally:
-        if 'conn' in locals():
+        if 'conn_result' in locals() and conn_result:
+            conn_result[1].close()
+        elif 'conn' in locals() and conn:
             conn.close()
 
 @admin_bp.route('/results/<int:result_id>', methods=['PUT'])
@@ -563,8 +649,12 @@ def update_result(result_id):
         total_voturi = data.get('total_voturi')
         castigator = data.get('castigator')
         
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        conn_result = get_db_connection()
+        if not conn_result:
+            return jsonify({'error': 'Database connection failed'}), 500
+        
+        db_type, conn = conn_result
+        cursor = get_db_cursor(conn_result, dictionary=True)
         
         # Verifică dacă rezultatul există
         cursor.execute("SELECT id FROM rezultate WHERE id = %s", (result_id,))
@@ -605,14 +695,20 @@ def update_result(result_id):
         print(f"Eroare update result: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
     finally:
-        if 'conn' in locals():
+        if 'conn_result' in locals() and conn_result:
+            conn_result[1].close()
+        elif 'conn' in locals() and conn:
             conn.close()
 
 @admin_bp.route('/results/<int:result_id>', methods=['DELETE'])
 def delete_result(result_id):
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        conn_result = get_db_connection()
+        if not conn_result:
+            return jsonify({'error': 'Database connection failed'}), 500
+        
+        db_type, conn = conn_result
+        cursor = get_db_cursor(conn_result, dictionary=True)
         
         cursor.execute("DELETE FROM rezultate WHERE id = %s", (result_id,))
         conn.commit()
@@ -622,7 +718,9 @@ def delete_result(result_id):
         print(f"Eroare delete result: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
     finally:
-        if 'conn' in locals():
+        if 'conn_result' in locals() and conn_result:
+            conn_result[1].close()
+        elif 'conn' in locals() and conn:
             conn.close()
 
 # ===== RUTĂ PENTRU EDITARE SESIUNE =====
@@ -637,8 +735,12 @@ def update_session(session_id):
         data_sfarsit = data.get('data_sfarsit')
         options = data.get('options')
         
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        conn_result = get_db_connection()
+        if not conn_result:
+            return jsonify({'error': 'Database connection failed'}), 500
+        
+        db_type, conn = conn_result
+        cursor = get_db_cursor(conn_result, dictionary=True)
         
         # Verifică dacă sesiunea există
         cursor.execute("SELECT id FROM voting_sessions WHERE id = %s", (session_id,))
@@ -693,5 +795,7 @@ def update_session(session_id):
         print(f"Eroare update session: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
     finally:
-        if 'conn' in locals():
+        if 'conn_result' in locals() and conn_result:
+            conn_result[1].close()
+        elif 'conn' in locals() and conn:
             conn.close()

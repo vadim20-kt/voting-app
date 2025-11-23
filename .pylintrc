@@ -1,0 +1,7 @@
+[MESSAGES CONTROL]
+disable=import-error,no-member
+
+[TYPECHECK]
+ignored-modules=psycopg2,psycopg2.extras
+
+

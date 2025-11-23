@@ -34,11 +34,12 @@ def login():
         if not idnp or not parola:
             return jsonify({'success': False, 'error': 'IDNP și parola sunt obligatorii'}), 400
 
-        conn = get_db_connection()
-        if not conn:
+        conn_result = get_db_connection()
+        if not conn_result:
             return jsonify({'success': False, 'error': 'Eroare de conexiune la baza de date'}), 500
-            
-        cursor = conn.cursor(dictionary=True)
+        
+        db_type, conn = conn_result
+        cursor = get_db_cursor(conn_result, dictionary=True)
         
         cursor.execute("SELECT * FROM users WHERE idnp = %s", (idnp,))
         user = cursor.fetchone()
@@ -218,7 +219,9 @@ def login():
         traceback.print_exc()
         return jsonify({'success': False, 'error': f'Eroare la autentificare: {str(e)}'}), 500
     finally:
-        if 'conn' in locals():
+        if 'conn_result' in locals() and conn_result:
+            conn_result[1].close()
+        elif 'conn' in locals() and conn:
             conn.close()
 
 @auth_bp.route('/register', methods=['POST'])
@@ -238,11 +241,12 @@ def register():
         if not idnp.isdigit() or len(idnp) != 13:
             return jsonify({'success': False, 'error': 'IDNP trebuie să aibă exact 13 cifre'}), 400
 
-        conn = get_db_connection()
-        if not conn:
+        conn_result = get_db_connection()
+        if not conn_result:
             return jsonify({'success': False, 'error': 'Eroare de conexiune la baza de date'}), 500
-            
-        cursor = conn.cursor(dictionary=True)
+        
+        db_type, conn = conn_result
+        cursor = get_db_cursor(conn_result, dictionary=True)
 
         # Verifică dacă IDNP-ul există deja
         cursor.execute("SELECT id FROM users WHERE idnp = %s", (idnp,))
@@ -264,7 +268,9 @@ def register():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
     finally:
-        if 'conn' in locals():
+        if 'conn_result' in locals() and conn_result:
+            conn_result[1].close()
+        elif 'conn' in locals() and conn:
             conn.close()
 
 @auth_bp.route('/request-code', methods=['POST'])
@@ -277,8 +283,12 @@ def request_verification_code():
         if not idnp:
             return jsonify({'success': False, 'error': 'IDNP este obligatoriu'}), 400
 
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        conn_result = get_db_connection()
+        if not conn_result:
+            return jsonify({'success': False, 'error': 'Eroare de conexiune la baza de date'}), 500
+        
+        db_type, conn = conn_result
+        cursor = get_db_cursor(conn_result, dictionary=True)
         
         # Verifică dacă utilizatorul există și obține datele
         cursor.execute("SELECT id, nume, email, telefon FROM users WHERE idnp = %s", (idnp,))
@@ -355,7 +365,9 @@ def request_verification_code():
         traceback.print_exc()
         return jsonify({'success': False, 'error': f'Eroare la solicitarea codului: {str(e)}'}), 500
     finally:
-        if 'conn' in locals():
+        if 'conn_result' in locals() and conn_result:
+            conn_result[1].close()
+        elif 'conn' in locals() and conn:
             conn.close()
 
 @auth_bp.route('/verify-code', methods=['POST'])
@@ -368,8 +380,12 @@ def verify_code():
         if not idnp or not code:
             return jsonify({'success': False, 'error': 'IDNP și codul sunt obligatorii'}), 400
 
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        conn_result = get_db_connection()
+        if not conn_result:
+            return jsonify({'success': False, 'error': 'Eroare de conexiune la baza de date'}), 500
+        
+        db_type, conn = conn_result
+        cursor = get_db_cursor(conn_result, dictionary=True)
         
         # Verifică codul
         cursor.execute(
@@ -395,5 +411,7 @@ def verify_code():
         traceback.print_exc()
         return jsonify({'success': False, 'error': f'Eroare la verificarea codului: {str(e)}'}), 500
     finally:
-        if 'conn' in locals():
+        if 'conn_result' in locals() and conn_result:
+            conn_result[1].close()
+        elif 'conn' in locals() and conn:
             conn.close()

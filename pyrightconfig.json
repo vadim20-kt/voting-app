@@ -1,0 +1,21 @@
+{
+  "reportMissingImports": "none",
+  "reportMissingModuleSource": "none",
+  "reportOptionalMemberAccess": "none",
+  "reportOptionalSubscript": "none",
+  "reportGeneralTypeIssues": "none",
+  "reportUnknownMemberType": "none",
+  "reportUnknownArgumentType": "none",
+  "reportUnknownVariableType": "none",
+  "reportUnboundVariable": "none",
+  "reportPrivateUsage": "none",
+  "typeCheckingMode": "off",
+  "ignore": [
+    "**/node_modules/**",
+    "**/__pycache__/**"
+  ],
+  "exclude": [
+    "**/node_modules",
+    "**/__pycache__"
+  ]
+}

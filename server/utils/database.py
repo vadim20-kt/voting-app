@@ -17,8 +17,8 @@ def detect_db_type():
     if postgres_url and 'postgres' in postgres_url.lower():
         DB_TYPE = 'postgresql'
         try:
-            import psycopg2
-            from psycopg2.extras import RealDictCursor
+            import psycopg2  # type: ignore
+            from psycopg2.extras import RealDictCursor  # type: ignore
             DB_CONNECTOR = psycopg2
             print("✓ Detectat PostgreSQL")
             return 'postgresql'
@@ -123,12 +123,15 @@ def get_db_config():
     return ('mysql', config)
 
 def get_db_connection():
-    """Creează conexiunea la baza de date"""
-    db_type, config = get_db_config()
-    
+    """Creează conexiunea la baza de date
+    Returns:
+        tuple: (db_type, connection) sau None dacă eșuează
+    """
     try:
+        db_type, config = get_db_config()
+        
         if db_type == 'postgresql':
-            import psycopg2
+            import psycopg2  # type: ignore
             conn = psycopg2.connect(**config)
             return ('postgresql', conn)
         else:
@@ -137,25 +140,35 @@ def get_db_connection():
             conn = mysql.connector.connect(**config)
             return ('mysql', conn)
     except Exception as e:
-        print(f"Eroare la conectarea la baza de date {db_type}: {e}")
+        print(f"Eroare la conectarea la baza de date: {e}")
         return None
 
 def get_db_cursor(conn_tuple, dictionary=True):
-    """Creează un cursor"""
-    if not conn_tuple:
+    """Creează un cursor
+    Args:
+        conn_tuple: Tuple (db_type, connection) sau None
+        dictionary: Dacă True, returnează cursor cu dicționare
+    Returns:
+        Cursor object sau None dacă conn_tuple este None
+    """
+    if not conn_tuple or not isinstance(conn_tuple, tuple):
         return None
     
     db_type, conn = conn_tuple
     
-    if db_type == 'postgresql':
-        from psycopg2.extras import RealDictCursor
-        if dictionary:
-            return conn.cursor(cursor_factory=RealDictCursor)
-        return conn.cursor()
-    else:
-        if dictionary:
-            return conn.cursor(dictionary=True)
-        return conn.cursor()
+    try:
+        if db_type == 'postgresql':
+            from psycopg2.extras import RealDictCursor  # type: ignore
+            if dictionary:
+                return conn.cursor(cursor_factory=RealDictCursor)
+            return conn.cursor()
+        else:
+            if dictionary:
+                return conn.cursor(dictionary=True)
+            return conn.cursor()
+    except Exception as e:
+        print(f"Eroare la crearea cursorului: {e}")
+        return None
 
 # Funcții helper pentru compatibilitate cu codul existent
 def _unwrap_connection(conn_result):
@@ -166,13 +179,15 @@ def _unwrap_connection(conn_result):
         return conn_result[1]  # Returnează doar conexiunea
     return conn_result
 
-# Wrapper pentru compatibilitate - returnează doar conexiunea (pentru codul existent)
-def get_db_connection_simple():
-    """Wrapper care returnează doar conexiunea (pentru compatibilitate)"""
-    result = get_db_connection()
-    if result:
-        return result[1]  # Returnează doar conexiunea
-    return None
+# Helper pentru a obține cursor cu verificare automată
+def get_cursor_safe(conn_result, dictionary=True):
+    """Obține cursor cu verificare automată pentru None
+    Returns:
+        cursor: Cursor object sau None dacă eșuează
+    """
+    if not conn_result:
+        return None
+    return get_db_cursor(conn_result, dictionary=dictionary)
 
 def generate_verification_code():
     """Generează un cod de verificare de 6 cifre"""
@@ -187,6 +202,10 @@ def init_db():
     
     db_type, conn = conn_tuple
     cursor = get_db_cursor(conn_tuple, dictionary=False)
+    
+    if not cursor:
+        print("❌ Nu s-a putut crea cursorul")
+        return
     
     try:
         # Sintaxă diferită pentru MySQL vs PostgreSQL

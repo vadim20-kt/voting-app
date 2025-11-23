@@ -1,0 +1,18 @@
+{
+  "python.analysis.typeCheckingMode": "off",
+  "python.analysis.diagnosticSeverityOverrides": {
+    "reportOptionalMemberAccess": "none",
+    "reportOptionalSubscript": "none",
+    "reportGeneralTypeIssues": "none",
+    "reportUnknownMemberType": "none",
+    "reportUnknownArgumentType": "none",
+    "reportUnknownVariableType": "none",
+    "reportMissingImports": "none",
+    "reportMissingModuleSource": "none"
+  },
+  "python.linting.enabled": true,
+  "python.linting.pylintEnabled": false,
+  "python.linting.flake8Enabled": false
+}
+
+

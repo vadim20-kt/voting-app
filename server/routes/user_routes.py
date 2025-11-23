@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from utils.database import get_db_connection
+from utils.database import get_db_connection, get_db_cursor
 import datetime
 
 user_bp = Blueprint('user', __name__, url_prefix='/api')
@@ -7,11 +7,12 @@ user_bp = Blueprint('user', __name__, url_prefix='/api')
 # Noutăți
 @user_bp.route('/news', methods=['GET'])
 def get_news():
-    conn = get_db_connection()
-    if not conn:
+    conn_result = get_db_connection()
+    if not conn_result:
         return jsonify({'error': 'Database connection failed'}), 500
-        
-    cursor = conn.cursor(dictionary=True)
+    
+    db_type, conn = conn_result
+    cursor = get_db_cursor(conn_result, dictionary=True)
     cursor.execute('SELECT * FROM noutati ORDER BY data_publicarii DESC')
     news = cursor.fetchall()
     cursor.close()
@@ -21,11 +22,12 @@ def get_news():
 # Rezultate anterioare
 @user_bp.route('/results', methods=['GET'])
 def get_results():
-    conn = get_db_connection()
-    if not conn:
+    conn_result = get_db_connection()
+    if not conn_result:
         return jsonify({'error': 'Database connection failed'}), 500
-        
-    cursor = conn.cursor(dictionary=True)
+    
+    db_type, conn = conn_result
+    cursor = get_db_cursor(conn_result, dictionary=True)
     cursor.execute('''
         SELECT r.*, vs.titlu as session_titlu
         FROM rezultate r 
@@ -40,11 +42,12 @@ def get_results():
 # Sesiuni active
 @user_bp.route('/sessions/active', methods=['GET'])
 def get_active_sessions():
-    conn = get_db_connection()
-    if not conn:
+    conn_result = get_db_connection()
+    if not conn_result:
         return jsonify({'error': 'Database connection failed'}), 500
-        
-    cursor = conn.cursor(dictionary=True)
+    
+    db_type, conn = conn_result
+    cursor = get_db_cursor(conn_result, dictionary=True)
     
     # Actualizează automat statusul sesiunilor expirate
     cursor.execute("""
@@ -85,11 +88,12 @@ def get_active_sessions():
 # Detalii sesiune
 @user_bp.route('/sessions/<int:session_id>', methods=['GET'])
 def get_session(session_id):
-    conn = get_db_connection()
-    if not conn:
+    conn_result = get_db_connection()
+    if not conn_result:
         return jsonify({'error': 'Database connection failed'}), 500
-        
-    cursor = conn.cursor(dictionary=True)
+    
+    db_type, conn = conn_result
+    cursor = get_db_cursor(conn_result, dictionary=True)
     cursor.execute('SELECT * FROM voting_sessions WHERE id = %s', (session_id,))
     session = cursor.fetchone()
     cursor.close()
@@ -103,11 +107,12 @@ def get_session(session_id):
 # Opțiuni pentru sesiune
 @user_bp.route('/sessions/<int:session_id>/options', methods=['GET'])
 def get_session_options(session_id):
-    conn = get_db_connection()
-    if not conn:
+    conn_result = get_db_connection()
+    if not conn_result:
         return jsonify({'error': 'Database connection failed'}), 500
-        
-    cursor = conn.cursor(dictionary=True)
+    
+    db_type, conn = conn_result
+    cursor = get_db_cursor(conn_result, dictionary=True)
     cursor.execute('SELECT * FROM vote_options WHERE session_id = %s', (session_id,))
     options = cursor.fetchall()
     cursor.close()
@@ -124,11 +129,12 @@ def submit_vote():
     if not user_id or not option_id:
         return jsonify({'error': 'user_id și option_id sunt obligatorii'}), 400
     
-    conn = get_db_connection()
-    if not conn:
+    conn_result = get_db_connection()
+    if not conn_result:
         return jsonify({'error': 'Database connection failed'}), 500
-        
-    cursor = conn.cursor(dictionary=True)
+    
+    db_type, conn = conn_result
+    cursor = get_db_cursor(conn_result, dictionary=True)
     
     try:
         # Verifică dacă utilizatorul a votat deja în această sesiune
