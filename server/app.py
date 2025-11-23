@@ -51,7 +51,7 @@ def init_db():
                 conn.execute(text("ALTER TABLE users ADD COLUMN idnp VARCHAR(13)"))
                 print("✅ Coloana idnp adăugată în tabela users")
             
-            # Creează tabela dacă nu există
+            # Creează toate tabelele necesare
             conn.execute(text("""
                 CREATE TABLE IF NOT EXISTS users (
                     id SERIAL PRIMARY KEY,
@@ -62,7 +62,38 @@ def init_db():
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """))
-            print("✅ Tabela users verificată/creată")
+            
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS rezultate (
+                    id SERIAL PRIMARY KEY,
+                    nume_candidat VARCHAR(100) NOT NULL,
+                    partid VARCHAR(100),
+                    numar_voturi INTEGER DEFAULT 0,
+                    data_actualizare TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """))
+            
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS noutati (
+                    id SERIAL PRIMARY KEY,
+                    titlu VARCHAR(200) NOT NULL,
+                    continut TEXT,
+                    data_publicarii TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """))
+            
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS login_logs (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER,
+                    idnp VARCHAR(13),
+                    ip_address VARCHAR(45),
+                    success BOOLEAN,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """))
+            
+            print("✅ Toate tabelele verificate/create")
     except Exception as e:
         print(f"❌ Eroare inițializare baza date: {e}")
 
@@ -142,26 +173,32 @@ def health_check():
             'error': str(e)
         }), 500
 
-# Rută pentru debug - verifică structura tabelei
+# Rută pentru debug - verifică structura tabelelor
 @app.route('/api/debug-tables')
 def debug_tables():
     try:
         with SessionLocal() as db:
-            # Verifică ce coloane are tabela users
-            result = db.execute(text("""
-                SELECT column_name, data_type 
-                FROM information_schema.columns 
-                WHERE table_name = 'users'
+            # Verifică toate tabelele
+            tables = db.execute(text("""
+                SELECT table_name 
+                FROM information_schema.tables 
+                WHERE table_schema = 'public'
             """))
-            columns = [dict(row) for row in result]
+            table_list = [row[0] for row in tables]
             
-            # Verifică ce date sunt în users
-            users = db.execute(text("SELECT * FROM users LIMIT 5"))
-            user_data = [dict(row) for row in users]
+            # Verifică coloanele pentru fiecare tabel
+            tables_info = {}
+            for table_name in table_list:
+                columns = db.execute(text(f"""
+                    SELECT column_name, data_type 
+                    FROM information_schema.columns 
+                    WHERE table_name = '{table_name}'
+                """))
+                tables_info[table_name] = [dict(row) for row in columns]
             
             return jsonify({
-                "columns": columns,
-                "users_sample": user_data
+                "tables": table_list,
+                "tables_info": tables_info
             })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
