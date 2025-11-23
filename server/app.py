@@ -56,6 +56,7 @@ def get_database_url():
 
 # Create database engine and session
 DATABASE_URL = get_database_url()
+logger.info(f"🎯 USING DATABASE URL: {DATABASE_URL}")
 logger.info(f"🔗 Connecting to database: {DATABASE_URL.split('@')[-1] if '@' in DATABASE_URL else DATABASE_URL}")
 
 try:
