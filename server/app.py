@@ -95,13 +95,16 @@ def init_db():
                 -- Create all tables with correct schema
                 CREATE TABLE users (
                     id SERIAL PRIMARY KEY,
-                    idnp VARCHAR(13) UNIQUE NOT NULL,
-                    username VARCHAR(100) NOT NULL,
-                    email VARCHAR(120) UNIQUE NOT NULL,
-                    phone VARCHAR(20),
-                    password VARCHAR(200) NOT NULL,
-                    is_admin BOOLEAN DEFAULT FALSE,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    idnp VARCHAR(13) UNIQUE NOT NULL,
+    username VARCHAR(100) NOT NULL,
+    email VARCHAR(120) UNIQUE NOT NULL,
+    phone VARCHAR(20),
+    password VARCHAR(200) NOT NULL,
+    is_admin BOOLEAN DEFAULT FALSE,
+    is_verified BOOLEAN DEFAULT FALSE,
+    verification_token VARCHAR(200),
+    verification_token_expires TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
             """))
             
