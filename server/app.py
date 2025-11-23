@@ -5,12 +5,21 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
 import hashlib
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
+import secrets
+import string
+from email_utils import send_verification_email, generate_verification_token
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
+
+# Email verification settings
+VERIFICATION_TOKEN_EXPIRE_HOURS = 24
 
 # Load environment variables
 try:
@@ -258,13 +267,80 @@ def login():
             """), {'idnp': idnp}).fetchone()
             
             if not user:
+                # Log failed login attempt
+                db.execute(text("""
+                    INSERT INTO login_logs (idnp, ip_address, success, reason) 
+                    VALUES (:idnp, :ip, FALSE, 'IDNP-ul nu există')
+                """), {
+                    'idnp': idnp,
+                    'ip': request.remote_addr
+                })
+                db.commit()
                 return jsonify({'success': False, 'message': 'IDNP-ul nu există'}), 401
             
             hashed_password = hash_password(password)
             if user.password != hashed_password:
+                # Log failed login attempt
+                db.execute(text("""
+                    INSERT INTO login_logs (user_id, idnp, ip_address, success, reason) 
+                    VALUES (:user_id, :idnp, :ip, FALSE, 'Parolă incorectă')
+                """), {
+                    'user_id': user.id,
+                    'idnp': user.idnp,
+                    'ip': request.remote_addr
+                })
+                db.commit()
                 return jsonify({'success': False, 'message': 'Parolă incorectă'}), 401
             
-            # Log the login attempt
+            # Check if email is verified
+            if not user.is_verified:
+                # Log failed login attempt due to unverified email
+                db.execute(text("""
+                    INSERT INTO login_logs (user_id, idnp, ip_address, success, reason) 
+                    VALUES (:user_id, :idnp, :ip, FALSE, 'Email neverificat')
+                """), {
+                    'user_id': user.id,
+                    'idnp': user.idnp,
+                    'ip': request.remote_addr
+                })
+                db.commit()
+                
+                # Check if verification token has expired
+                if user.verification_token_expires and user.verification_token_expires < datetime.utcnow():
+                    # Generate a new verification token
+                    verification_token = generate_verification_token()
+                    token_expires = datetime.utcnow() + timedelta(hours=VERIFICATION_TOKEN_EXPIRE_HOURS)
+                    
+                    # Update user with new token
+                    db.execute(text("""
+                        UPDATE users 
+                        SET verification_token = :token,
+                            verification_token_expires = :expires
+                        WHERE id = :user_id
+                    """), {
+                        'token': verification_token,
+                        'expires': token_expires,
+                        'user_id': user.id
+                    })
+                    
+                    # Resend verification email
+                    base_url = request.host_url.rstrip('/')
+                    if not send_verification_email(user.email, verification_token, user.id, base_url):
+                        logger.warning(f"Failed to resend verification email to {user.email}")
+                    
+                    return jsonify({
+                        'success': False, 
+                        'message': 'Link-ul de verificare a expirat. V-am trimis un nou email de verificare.',
+                        'requires_verification': True
+                    }), 403
+                
+                return jsonify({
+                    'success': False, 
+                    'message': 'Vă rugăm să vă verificați adresa de email pentru a vă putea autentifica.',
+                    'requires_verification': True
+                }), 403
+            
+            # Log successful login
             db.execute(text("""
                 INSERT INTO login_logs (user_id, idnp, ip_address, success) 
                 VALUES (:user_id, :idnp, :ip, TRUE)
@@ -282,7 +358,8 @@ def login():
                     'id': user.id,
                     'username': user.username,
                     'email': user.email,
-                    'is_admin': user.is_admin
+                    'is_admin': user.is_admin,
+                    'is_verified': user.is_verified
                 }
             })
             
@@ -325,21 +402,35 @@ def register():
                 }), 400
             
             hashed_password = hash_password(password)
-            db.execute(text("""
-                INSERT INTO users (username, email, idnp, phone, password) 
-                VALUES (:username, :email, :idnp, :phone, :password)
+            verification_token = generate_verification_token()
+            token_expires = datetime.utcnow() + timedelta(hours=VERIFICATION_TOKEN_EXPIRE_HOURS)
+            
+            # Insert the new user with verification token
+            result = db.execute(text("""
+                INSERT INTO users (username, email, idnp, phone, password, verification_token, verification_token_expires)
+                VALUES (:username, :email, :idnp, :phone, :password, :verification_token, :token_expires)
+                RETURNING id
             """), {
                 'username': name,
                 'email': email,
                 'idnp': idnp,
                 'phone': phone,
-                'password': hashed_password
+                'password': hashed_password,
+                'verification_token': verification_token,
+                'token_expires': token_expires
             })
+            
+            user_id = result.fetchone().id
             db.commit()
+            
+            # Send verification email
+            base_url = request.host_url.rstrip('/')
+            if not send_verification_email(email, verification_token, user_id, base_url):
+                logger.warning(f"Failed to send verification email to {email}")
             
             return jsonify({
                 'success': True, 
-                'message': 'Cont creat cu succes! Vă puteți autentifica acum.'
+                'message': 'Cont creat cu succes! Vă rugăm să vă verificați adresa de email pentru a finaliza înregistrarea.'
             })
             
     except Exception as e:
@@ -347,6 +438,57 @@ def register():
         return jsonify({
             'success': False, 
             'message': f'Eroare la înregistrare: {str(e)}'
+        }), 500
+
+@app.route('/api/verify-email', methods=['GET'])
+def verify_email():
+    """Verify user's email using the token sent to their email."""
+    token = request.args.get('token')
+    user_id = request.args.get('user_id')
+    
+    if not token or not user_id:
+        return jsonify({
+            'success': False,
+            'message': 'Token-ul de verificare sau ID-ul utilizatorului lipsesc'
+        }), 400
+    
+    try:
+        with SessionLocal() as db:
+            # Find user by ID and token
+            user = db.execute(text("""
+                SELECT * FROM users 
+                WHERE id = :user_id 
+                AND verification_token = :token
+                AND verification_token_expires > NOW()
+            """), {'user_id': user_id, 'token': token}).fetchone()
+            
+            if not user:
+                return jsonify({
+                    'success': False,
+                    'message': 'Link de verificare invalid sau expirat. Vă rugăm să încercați din sau contactați asistența.'
+                }), 400
+            
+            # Update user as verified
+            db.execute(text("""
+                UPDATE users 
+                SET is_verified = TRUE, 
+                    verification_token = NULL,
+                    verification_token_expires = NULL
+                WHERE id = :user_id
+            """), {'user_id': user_id})
+            
+            db.commit()
+            
+            return jsonify({
+                'success': True,
+                'message': 'Adresa de email a fost verificată cu succes! Vă puteți autentifica acum.'
+            })
+            
+    except Exception as e:
+        logger.error(f"Email verification error: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'Eroare la verificarea email-ului: {str(e)}'
         }), 500
 
 @app.route('/api/results', methods=['GET'])
