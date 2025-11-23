@@ -38,23 +38,31 @@ def init_db():
         return
         
     try:
-        # Încearcă să importe modelele existente
-        try:
-            from models import Base
-            Base.metadata.create_all(bind=engine)
-            print("✅ Tabele create din modele")
-        except ImportError:
-            # Dacă nu există modele, înceracă să creeze tabele de bază
-            with engine.connect() as conn:
-                conn.execute(text("""
-                    CREATE TABLE IF NOT EXISTS users (
-                        id SERIAL PRIMARY KEY,
-                        username VARCHAR(80) UNIQUE NOT NULL,
-                        email VARCHAR(120) UNIQUE NOT NULL,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                    )
-                """))
-                print("✅ Tabela users creată")
+        with engine.connect() as conn:
+            # Verifică dacă coloana idnp există deja
+            result = conn.execute(text("""
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name = 'users' AND column_name = 'idnp'
+            """))
+            
+            if not result.fetchone():
+                # Adaugă coloana idnp dacă nu există
+                conn.execute(text("ALTER TABLE users ADD COLUMN idnp VARCHAR(13)"))
+                print("✅ Coloana idnp adăugată în tabela users")
+            
+            # Creează tabela dacă nu există
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS users (
+                    id SERIAL PRIMARY KEY,
+                    idnp VARCHAR(13) UNIQUE,
+                    username VARCHAR(80) UNIQUE NOT NULL,
+                    email VARCHAR(120) UNIQUE NOT NULL,
+                    password VARCHAR(200) NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """))
+            print("✅ Tabela users verificată/creată")
     except Exception as e:
         print(f"❌ Eroare inițializare baza date: {e}")
 
@@ -133,6 +141,30 @@ def health_check():
             'database': 'connection failed',
             'error': str(e)
         }), 500
+
+# Rută pentru debug - verifică structura tabelei
+@app.route('/api/debug-tables')
+def debug_tables():
+    try:
+        with SessionLocal() as db:
+            # Verifică ce coloane are tabela users
+            result = db.execute(text("""
+                SELECT column_name, data_type 
+                FROM information_schema.columns 
+                WHERE table_name = 'users'
+            """))
+            columns = [dict(row) for row in result]
+            
+            # Verifică ce date sunt în users
+            users = db.execute(text("SELECT * FROM users LIMIT 5"))
+            user_data = [dict(row) for row in users]
+            
+            return jsonify({
+                "columns": columns,
+                "users_sample": user_data
+            })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 10000))
