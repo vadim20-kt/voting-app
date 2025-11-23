@@ -22,12 +22,14 @@ except ImportError:
 
 app = Flask(__name__)
 
-# CORS configuration
+# CORS configuration for development
 CORS(app, resources={
-    r"/api/*": {
-        "origins": ["http://localhost:3000", "https://your-frontend-url.vercel.app"],
-        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization"]
+    r"/*": {
+        "origins": ["*"],
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+        "allow_headers": ["*"],
+        "expose_headers": ["Content-Type", "Authorization"],
+        "supports_credentials": True
     }
 })
 
