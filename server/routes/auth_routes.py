@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from utils.database import get_db_connection, generate_verification_code
+from utils.database import get_db_connection, get_db_cursor, generate_verification_code
 import hashlib
 import traceback
 

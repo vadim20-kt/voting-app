@@ -20,10 +20,18 @@ app.static_url_path = ''
 # Importă și inițializează baza de date
 try:
     from utils.database import init_db
-    init_db()
+    # Verifică dacă suntem pe Render sau Heroku (rulează init_db automat)
+    if os.getenv('RENDER') or os.getenv('DATABASE_URL') or os.getenv('CLEARDB_DATABASE_URL'):
+        print("🌐 Detectat hosting cloud - inițializare baza de date...")
+        init_db()
+    else:
+        # Local - inițializează doar dacă nu există tabele
+        init_db()
     print("✓ Baza de date inițializată cu succes")
 except Exception as e:
     print(f"✗ Eroare la inițializarea bazei de date: {e}")
+    import traceback
+    traceback.print_exc()
 
 # Înregistrează blueprint-urile API
 try:
