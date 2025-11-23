@@ -12,7 +12,18 @@
   },
   "python.linting.enabled": true,
   "python.linting.pylintEnabled": false,
-  "python.linting.flake8Enabled": false
+  "python.linting.flake8Enabled": false,
+  "cursorpyright.analysis.diagnosticSeverityOverrides": {
+    "reportOptionalMemberAccess": "none",
+    "reportOptionalSubscript": "none",
+    "reportGeneralTypeIssues": "none",
+    "reportUnknownMemberType": "none",
+    "reportUnknownArgumentType": "none",
+    "reportUnknownVariableType": "none",
+    "reportMissingImports": "none",
+    "reportMissingModuleSource": "none"
+  },
+  "cursorpyright.analysis.typeCheckingMode": "off"
 }
 
 
