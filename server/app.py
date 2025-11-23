@@ -89,11 +89,12 @@ def init_db():
                     idnp VARCHAR(13) UNIQUE NOT NULL,
                     username VARCHAR(100) NOT NULL,
                     email VARCHAR(120) UNIQUE NOT NULL,
-                    phone VARCHAR(20),
                     password VARCHAR(200) NOT NULL,
                     is_admin BOOLEAN DEFAULT FALSE,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
+                );
+                ALTER TABLE users 
+                ADD COLUMN IF NOT EXISTS phone VARCHAR(20)
             """))
             
             conn.execute(text("""
