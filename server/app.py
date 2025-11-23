@@ -136,14 +136,26 @@ def init_db():
             """))
             
             # Add admin user if not exists
-            admin_check = conn.execute(text("SELECT * FROM users WHERE username = 'admin'"))
-            if not admin_check.fetchone():
+            admin_check = conn.execute(text("""
+                SELECT * FROM users WHERE username = 'admin' OR idnp = '1234567890123'
+            """))
+            admin_exists = admin_check.fetchone()
+            
+            if not admin_exists:
                 hashed_password = hash_password('admin123')
                 conn.execute(text("""
-                    INSERT INTO users (username, email, idnp, password, is_admin) 
-                    VALUES ('admin', 'admin@voting.com', '0000000000000', :password, TRUE)
+                    INSERT INTO users (username, email, idnp, phone, password, is_admin) 
+                    VALUES ('admin', 'admin@voting.com', '1234567890123', '123456789', :password, TRUE)
                 """), {'password': hashed_password})
-                logger.info("✅ Admin user created")
+                logger.info("✅ Admin user created with IDNP: 1234567890123")
+            elif admin_exists.idnp != '1234567890123':
+                # Update existing admin to use the correct IDNP
+                conn.execute(text("""
+                    UPDATE users 
+                    SET idnp = '1234567890123' 
+                    WHERE username = 'admin' AND idnp != '1234567890123'
+                """))
+                logger.info("✅ Updated admin user with correct IDNP")
             
             # Add sample candidates
             candidates_check = conn.execute(text("SELECT * FROM rezultate"))
