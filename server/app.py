@@ -6,64 +6,90 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
 import hashlib
 from datetime import datetime
+import logging
 
-# Încarcă variabilele de mediu
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Load environment variables
 try:
     from dotenv import load_dotenv
     load_dotenv()
-    print("✓ Variabile de mediu încărcate")
+    logger.info("✓ Environment variables loaded")
 except ImportError:
-    print("⚠️ python-dotenv nu este instalat")
+    logger.warning("⚠️ python-dotenv is not installed")
 
 app = Flask(__name__)
-CORS(app)
 
-# Configurație bază de date - URL-ul tău direct
-DATABASE_URL = "postgresql://voting_app_ldec_user:VROdX2znIac3Hk7TRE2Xzgb18axGRwqx@dpg-d4h4rvh5pdvs7390tdrg-a.frankfurt-postgres.render.com:5432/voting_app_ldec"
+# CORS configuration
+CORS(app, resources={
+    r"/api/*": {
+        "origins": ["*"],
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"]
+    }
+})
 
-print(f"🔗 Conectare la: {DATABASE_URL.split('@')[1] if '@' in DATABASE_URL else DATABASE_URL}")
+# Database configuration
+def get_database_url():
+    # Check for Render's PostgreSQL URL first
+    if 'DATABASE_URL' in os.environ:
+        db_url = os.environ['DATABASE_URL']
+        # Fix for Render's PostgreSQL URL format
+        if db_url.startswith('postgres://'):
+            db_url = db_url.replace('postgres://', 'postgresql://', 1)
+        return db_url
+    # Fallback to direct URL or local development
+    return os.getenv('DATABASE_URL', 'postgresql://voting_app_ldec_user:VROdX2znIac3Hk7TRE2Xzgb18axGRwqx@dpg-d4h4rvh5pdvs7390tdrg-a.frankfurt-postgres.render.com:5432/voting_app_ldec')
 
-# Creează engine și sesiune
+# Create database engine and session
+DATABASE_URL = get_database_url()
+logger.info(f"🔗 Connecting to database: {DATABASE_URL.split('@')[-1] if '@' in DATABASE_URL else DATABASE_URL}")
+
 try:
-    engine = create_engine(DATABASE_URL)
+    engine = create_engine(
+        DATABASE_URL,
+        pool_pre_ping=True,
+        pool_recycle=300,
+        connect_args={
+            'connect_timeout': 10,
+            'options': '-c statement_timeout=10000'
+        }
+    )
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    print("✅ Engine baza de date creat")
+    logger.info("✅ Database engine created successfully")
+    
+    # Test the connection
+    with engine.connect() as conn:
+        conn.execute(text("SELECT 1"))
+    logger.info("✅ Database connection test successful")
+    
 except Exception as e:
-    print(f"❌ Eroare creare engine: {e}")
+    logger.error(f"❌ Failed to create database engine: {str(e)}")
     engine = None
     SessionLocal = None
 
-# Funcție hash pentru parole
+# Password hashing function
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
-# Funcție pentru inițializare baza de date
+# Database initialization
 def init_db():
     if not engine:
-        print("❌ Nu se poate inițializa - engine negăsit")
-        return
+        logger.error("❌ Cannot initialize - database engine not available")
+        return False
         
     try:
         with engine.connect() as conn:
-            # Verifică dacă coloana idnp există deja
-            result = conn.execute(text("""
-                SELECT column_name 
-                FROM information_schema.columns 
-                WHERE table_name = 'users' AND column_name = 'idnp'
-            """))
-            
-            if not result.fetchone():
-                # Adaugă coloana idnp dacă nu există
-                conn.execute(text("ALTER TABLE users ADD COLUMN idnp VARCHAR(13)"))
-                print("✅ Coloana idnp adăugată în tabela users")
-            
-            # Creează toate tabelele necesare
+            # Create all tables
             conn.execute(text("""
                 CREATE TABLE IF NOT EXISTS users (
                     id SERIAL PRIMARY KEY,
-                    idnp VARCHAR(13) UNIQUE,
-                    username VARCHAR(80) UNIQUE NOT NULL,
+                    idnp VARCHAR(13) UNIQUE NOT NULL,
+                    username VARCHAR(100) NOT NULL,
                     email VARCHAR(120) UNIQUE NOT NULL,
+                    phone VARCHAR(20),
                     password VARCHAR(200) NOT NULL,
                     is_admin BOOLEAN DEFAULT FALSE,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -109,19 +135,19 @@ def init_db():
                 )
             """))
             
-            # Adaugă date demo
-            # Verifică dacă adminul există
+            # Add admin user if not exists
             admin_check = conn.execute(text("SELECT * FROM users WHERE username = 'admin'"))
             if not admin_check.fetchone():
+                hashed_password = hash_password('admin123')
                 conn.execute(text("""
-                    INSERT INTO users (username, email, password, idnp, is_admin) 
-                    VALUES ('admin', 'admin@voting.com', %s, '1234567890123', TRUE)
-                """), (hash_password('admin123'),))
-                print("✅ Cont admin creat")
+                    INSERT INTO users (username, email, idnp, password, is_admin) 
+                    VALUES ('admin', 'admin@voting.com', '0000000000000', :password, TRUE)
+                """), {'password': hashed_password})
+                logger.info("✅ Admin user created")
             
-            # Adaugă candidați demo
-            candidati_check = conn.execute(text("SELECT * FROM rezultate"))
-            if not candidati_check.fetchone():
+            # Add sample candidates
+            candidates_check = conn.execute(text("SELECT * FROM rezultate"))
+            if not candidates_check.fetchone():
                 conn.execute(text("""
                     INSERT INTO rezultate (nume_candidat, partid, numar_voturi) 
                     VALUES 
@@ -129,61 +155,93 @@ def init_db():
                     ('Maria Ionescu', 'Partidul Liberal', 0),
                     ('Vasile Georgescu', 'Partidul Social', 0)
                 """))
-                print("✅ Candidați demo adăugați")
+                logger.info("✅ Sample candidates added")
             
-            # Adaugă știri demo
-            noutati_check = conn.execute(text("SELECT * FROM noutati"))
-            if not noutati_check.fetchone():
+            # Add sample news
+            news_check = conn.execute(text("SELECT * FROM noutati"))
+            if not news_check.fetchone():
                 conn.execute(text("""
                     INSERT INTO noutati (titlu, continut) 
                     VALUES 
                     ('Alegeri 2024', 'Procesul electoral a început. Toți cetățenii sunt invitați să voteze.'),
                     ('Informații importante', 'Vă rugăm să vă aduceți buletinul la secția de votare.')
                 """))
-                print("✅ Știri demo adăugate")
+                logger.info("✅ Sample news added")
             
-            print("✅ Toate tabelele verificate/create cu date demo")
+            conn.commit()
+            return True
+            
     except Exception as e:
-        print(f"❌ Eroare inițializare baza date: {e}")
+        logger.error(f"❌ Error initializing database: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return False
 
-# Inițializează baza de date
+# Initialize database
 try:
-    print("🌐 Inițializare baza de date...")
-    init_db()
-    print("✅ Baza de date inițializată")
+    logger.info("🌐 Initializing database...")
+    if init_db():
+        logger.info("✅ Database initialized successfully")
+    else:
+        logger.error("❌ Failed to initialize database")
 except Exception as e:
-    print(f"⚠️ Avertisment inițializare baza date: {e}")
+    logger.error(f"❌ Error during database initialization: {str(e)}")
 
-# Configurare fișiere statice
+# Configure static files
 app.static_folder = '../client'
 app.static_url_path = ''
 
-# Rute pentru autentificare
-@app.route('/api/login', methods=['POST'])
+# API Routes
+@app.route('/api/health', methods=['GET'])
+def health_check():
+    if not engine:
+        return jsonify({'status': 'error', 'message': 'Database engine not found'}), 500
+        
+    try:
+        with SessionLocal() as db:
+            db.execute(text('SELECT 1'))
+        return jsonify({
+            'status': 'healthy', 
+            'database': 'connected',
+            'message': 'Connection successful!'
+        }), 200
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'database': 'connection failed',
+            'error': str(e)
+        }), 500
+
+@app.route('/api/login', methods=['POST', 'OPTIONS'])
 def login():
+    if request.method == 'OPTIONS':
+        response = jsonify({'message': 'OK'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        response.headers.add('Access-Control-Allow-Methods', 'POST')
+        return response
+
     try:
         data = request.get_json()
-        username = data.get('username')
+        idnp = data.get('idnp')
         password = data.get('password')
         
-        if not username or not password:
-            return jsonify({'success': False, 'message': 'Username și parolă sunt obligatorii'}), 400
+        if not idnp or not password:
+            return jsonify({'success': False, 'message': 'IDNP și parola sunt obligatorii'}), 400
         
         with SessionLocal() as db:
-            # Caută utilizatorul
             user = db.execute(text("""
-                SELECT * FROM users WHERE username = :username OR email = :username
-            """), {'username': username}).fetchone()
+                SELECT * FROM users WHERE idnp = :idnp
+            """), {'idnp': idnp}).fetchone()
             
             if not user:
-                return jsonify({'success': False, 'message': 'Utilizatorul nu există'}), 401
+                return jsonify({'success': False, 'message': 'IDNP-ul nu există'}), 401
             
-            # Verifică parola
             hashed_password = hash_password(password)
             if user.password != hashed_password:
                 return jsonify({'success': False, 'message': 'Parolă incorectă'}), 401
             
-            # Loghează accesul
+            # Log the login attempt
             db.execute(text("""
                 INSERT INTO login_logs (user_id, idnp, ip_address, success) 
                 VALUES (:user_id, :idnp, :ip, TRUE)
@@ -196,7 +254,7 @@ def login():
             
             return jsonify({
                 'success': True,
-                'message': 'Login reușit',
+                'message': 'Autentificare reușită',
                 'user': {
                     'id': user.id,
                     'username': user.username,
@@ -206,48 +264,68 @@ def login():
             })
             
     except Exception as e:
-        return jsonify({'success': False, 'message': f'Eroare la login: {str(e)}'}), 500
+        logger.error(f"Login error: {str(e)}")
+        return jsonify({'success': False, 'message': f'Eroare la autentificare: {str(e)}'}), 500
 
-@app.route('/api/register', methods=['POST'])
+@app.route('/api/register', methods=['POST', 'OPTIONS'])
 def register():
+    if request.method == 'OPTIONS':
+        response = jsonify({'message': 'OK'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        response.headers.add('Access-Control-Allow-Methods', 'POST')
+        return response
+
     try:
         data = request.get_json()
-        username = data.get('username')
-        email = data.get('email')
         idnp = data.get('idnp')
+        name = data.get('name')
+        email = data.get('email')
+        phone = data.get('phone')
         password = data.get('password')
         
-        if not all([username, email, idnp, password]):
-            return jsonify({'success': False, 'message': 'Toate câmpurile sunt obligatorii'}), 400
+        if not all([idnp, name, email, password]):
+            return jsonify({
+                'success': False, 
+                'message': 'Toate câmpurile marcate cu * sunt obligatorii'
+            }), 400
         
         with SessionLocal() as db:
-            # Verifică dacă username/email/idnp există deja
             existing_user = db.execute(text("""
-                SELECT * FROM users WHERE username = :username OR email = :email OR idnp = :idnp
-            """), {'username': username, 'email': email, 'idnp': idnp}).fetchone()
+                SELECT * FROM users WHERE idnp = :idnp OR email = :email
+            """), {'idnp': idnp, 'email': email}).fetchone()
             
             if existing_user:
-                return jsonify({'success': False, 'message': 'Username, email sau IDNP există deja'}), 400
+                return jsonify({
+                    'success': False, 
+                    'message': 'Acest IDNP sau adresă de email este deja înregistrat'
+                }), 400
             
-            # Creează utilizatorul nou
             hashed_password = hash_password(password)
             db.execute(text("""
-                INSERT INTO users (username, email, idnp, password) 
-                VALUES (:username, :email, :idnp, :password)
+                INSERT INTO users (username, email, idnp, phone, password) 
+                VALUES (:username, :email, :idnp, :phone, :password)
             """), {
-                'username': username,
+                'username': name,
                 'email': email,
                 'idnp': idnp,
+                'phone': phone,
                 'password': hashed_password
             })
             db.commit()
             
-            return jsonify({'success': True, 'message': 'Cont creat cu succes'})
+            return jsonify({
+                'success': True, 
+                'message': 'Cont creat cu succes! Vă puteți autentifica acum.'
+            })
             
     except Exception as e:
-        return jsonify({'success': False, 'message': f'Eroare la înregistrare: {str(e)}'}), 500
+        logger.error(f"Registration error: {str(e)}")
+        return jsonify({
+            'success': False, 
+            'message': f'Eroare la înregistrare: {str(e)}'
+        }), 500
 
-# Rute pentru rezultate
 @app.route('/api/results', methods=['GET'])
 def get_results():
     try:
@@ -256,20 +334,21 @@ def get_results():
                 SELECT * FROM rezultate ORDER BY numar_voturi DESC
             """)).fetchall()
             
-            results_list = []
-            for row in results:
-                results_list.append({
-                    'id': row.id,
-                    'nume_candidat': row.nume_candidat,
-                    'partid': row.partid,
-                    'numar_voturi': row.numar_voturi
-                })
+            results_list = [{
+                'id': row.id,
+                'nume_candidat': row.nume_candidat,
+                'partid': row.partid,
+                'numar_voturi': row.numar_voturi
+            } for row in results]
             
             return jsonify({'success': True, 'results': results_list})
     except Exception as e:
-        return jsonify({'success': False, 'message': f'Eroare la obținerea rezultatelor: {str(e)}'}), 500
+        logger.error(f"Get results error: {str(e)}")
+        return jsonify({
+            'success': False, 
+            'message': f'Eroare la obținerea rezultatelor: {str(e)}'
+        }), 500
 
-# Rute pentru știri
 @app.route('/api/news', methods=['GET'])
 def get_news():
     try:
@@ -278,22 +357,30 @@ def get_news():
                 SELECT * FROM noutati ORDER BY data_publicarii DESC
             """)).fetchall()
             
-            news_list = []
-            for row in news:
-                news_list.append({
-                    'id': row.id,
-                    'titlu': row.titlu,
-                    'continut': row.continut,
-                    'data_publicarii': row.data_publicarii.isoformat() if row.data_publicarii else None
-                })
+            news_list = [{
+                'id': row.id,
+                'titlu': row.titlu,
+                'continut': row.continut,
+                'data_publicarii': row.data_publicarii.isoformat() if row.data_publicarii else None
+            } for row in news]
             
             return jsonify({'success': True, 'news': news_list})
     except Exception as e:
-        return jsonify({'success': False, 'message': f'Eroare la obținerea știrilor: {str(e)}'}), 500
+        logger.error(f"Get news error: {str(e)}")
+        return jsonify({
+            'success': False, 
+            'message': f'Eroare la obținerea știrilor: {str(e)}'
+        }), 500
 
-# Rute pentru votare
-@app.route('/api/vote', methods=['POST'])
+@app.route('/api/vote', methods=['POST', 'OPTIONS'])
 def vote():
+    if request.method == 'OPTIONS':
+        response = jsonify({'message': 'OK'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        response.headers.add('Access-Control-Allow-Methods', 'POST')
+        return response
+
     try:
         data = request.get_json()
         user_id = data.get('user_id')
@@ -329,31 +416,32 @@ def vote():
             return jsonify({'success': True, 'message': 'Vot înregistrat cu succes'})
             
     except Exception as e:
+        logger.error(f"Vote error: {str(e)}")
         return jsonify({'success': False, 'message': f'Eroare la votare: {str(e)}'}), 500
 
-# Rute admin
+# Admin routes
 @app.route('/api/admin/users', methods=['GET'])
 def get_all_users():
     try:
         with SessionLocal() as db:
             users = db.execute(text("""
-                SELECT id, username, email, idnp, is_admin, created_at 
+                SELECT id, username, email, idnp, phone, is_admin, created_at 
                 FROM users ORDER BY created_at DESC
             """)).fetchall()
             
-            users_list = []
-            for row in users:
-                users_list.append({
-                    'id': row.id,
-                    'username': row.username,
-                    'email': row.email,
-                    'idnp': row.idnp,
-                    'is_admin': row.is_admin,
-                    'created_at': row.created_at.isoformat() if row.created_at else None
-                })
+            users_list = [{
+                'id': row.id,
+                'username': row.username,
+                'email': row.email,
+                'idnp': row.idnp,
+                'phone': row.phone,
+                'is_admin': row.is_admin,
+                'created_at': row.created_at.isoformat() if row.created_at else None
+            } for row in users]
             
             return jsonify({'success': True, 'users': users_list})
     except Exception as e:
+        logger.error(f"Get users error: {str(e)}")
         return jsonify({'success': False, 'message': f'Eroare la obținerea utilizatorilor: {str(e)}'}), 500
 
 @app.route('/api/admin/stats', methods=['GET'])
@@ -368,20 +456,18 @@ def get_stats():
             
             # Ultimele logări
             recent_logins = db.execute(text("""
-                SELECT username, success, created_at 
+                SELECT u.username, ll.success, ll.created_at 
                 FROM login_logs ll
                 JOIN users u ON ll.user_id = u.id
                 ORDER BY ll.created_at DESC 
                 LIMIT 10
             """)).fetchall()
             
-            logins_list = []
-            for row in recent_logins:
-                logins_list.append({
-                    'username': row.username,
-                    'success': row.success,
-                    'created_at': row.created_at.isoformat() if row.created_at else None
-                })
+            logins_list = [{
+                'username': row.username,
+                'success': row.success,
+                'created_at': row.created_at.isoformat() if row.created_at else None
+            } for row in recent_logins]
             
             return jsonify({
                 'success': True,
@@ -392,9 +478,10 @@ def get_stats():
                 'recent_logins': logins_list
             })
     except Exception as e:
+        logger.error(f"Get stats error: {str(e)}")
         return jsonify({'success': False, 'message': f'Eroare la obținerea statisticilor: {str(e)}'}), 500
 
-# Rute pentru fișiere statice
+# Static file routes
 @app.route('/')
 def serve_index():
     return send_from_directory(app.static_folder, 'index.html')
@@ -403,7 +490,7 @@ def serve_index():
 def serve_client_files(filename):
     return send_from_directory(app.static_folder, filename)
 
-# Rute speciale pentru pagini
+# Special routes for pages
 @app.route('/login')
 def serve_login():
     return send_from_directory(app.static_folder, 'login.html')
@@ -424,33 +511,12 @@ def serve_admin_files(filename):
 def serve_admin_redirect():
     return send_from_directory(app.static_folder, 'admin/admin.html')
 
-# Rută pentru testare conexiune bază date
-@app.route('/api/health')
-def health_check():
-    if not engine:
-        return jsonify({'status': 'error', 'message': 'Engine baza date negăsit'}), 500
-        
-    try:
-        with SessionLocal() as db:
-            db.execute(text('SELECT 1'))
-        return jsonify({
-            'status': 'healthy', 
-            'database': 'connected',
-            'message': 'Conexiune reușită!'
-        }), 200
-    except Exception as e:
-        return jsonify({
-            'status': 'error',
-            'database': 'connection failed',
-            'error': str(e)
-        }), 500
-
-# Rută pentru debug - verifică structura tabelelor
+# Debug route - check table structure
 @app.route('/api/debug-tables')
 def debug_tables():
     try:
         with SessionLocal() as db:
-            # Verifică toate tabelele
+            # Check all tables
             tables = db.execute(text("""
                 SELECT table_name 
                 FROM information_schema.tables 
@@ -458,7 +524,7 @@ def debug_tables():
             """))
             table_list = [row[0] for row in tables]
             
-            # Verifică coloanele pentru fiecare tabel
+            # Check columns for each table
             tables_info = {}
             for table_name in table_list:
                 columns = db.execute(text(f"""
@@ -479,8 +545,8 @@ if __name__ == '__main__':
     port = int(os.getenv('PORT', 10000))
     debug = os.getenv('FLASK_ENV') != 'production'
     
-    print(f"🚀 Pornire Voting App pe portul {port}")
-    print(f"📁 Fișiere statice din: {app.static_folder}")
-    print(f"🔧 Mod debug: {debug}")
+    logger.info(f"🚀 Starting Voting App on port {port}")
+    logger.info(f"📁 Static files from: {app.static_folder}")
+    logger.info(f"🔧 Debug mode: {debug}")
     
     app.run(debug=debug, port=port, host='0.0.0.0')
